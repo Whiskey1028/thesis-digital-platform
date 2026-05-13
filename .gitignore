@@ -1,0 +1,8 @@
+.next
+node_modules
+npm-debug.log*
+.DS_Store
+.next-cache-broken-*
+.next-cache-restart-*
+docs/
+data/
