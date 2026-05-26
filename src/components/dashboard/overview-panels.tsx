@@ -21,7 +21,7 @@ export function OverviewPanels({
   return (
     <div className="space-y-6">
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <KpiCard label="总收入" value={`¥${metrics.totalRevenue.toLocaleString()}`} detail="工单总价汇总" />
+        <KpiCard label="总收入" value={`¥${metrics.totalRevenue.toLocaleString()}`} detail="自接取总价、转包取收入，全量工单汇总" />
         <KpiCard label="已回款" value={`¥${metrics.settledRevenue.toLocaleString()}`} detail="已结算金额汇总" />
         <KpiCard label="应收账款" value={`¥${metrics.totalReceivables.toLocaleString()}`} detail="未回款余额" />
         <KpiCard label="利润估算" value={`¥${metrics.totalProfit.toLocaleString()}`} detail="收入减去成本后口径" />

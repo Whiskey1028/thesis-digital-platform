@@ -6,81 +6,11 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 
 const root = process.cwd();
-const docsDir = path.join(root, "docs");
+const rawDir = path.join(root, "raw");
 const dataDir = path.join(root, "data");
-const pythonPath =
-  "/Users/whiskey/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3";
-
-const extractorScript = `
-from zipfile import ZipFile
-from xml.etree import ElementTree as ET
-import json
-import re
-import sys
-
-NS = {'main': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
-
-def col_letters(cell_ref):
-    m = re.match(r'([A-Z]+)', cell_ref)
-    return m.group(1) if m else cell_ref
-
-def load_shared_strings(zf):
-    if 'xl/sharedStrings.xml' not in zf.namelist():
-        return []
-    root = ET.fromstring(zf.read('xl/sharedStrings.xml'))
-    strings = []
-    for si in root.findall('main:si', NS):
-        texts = [t.text or '' for t in si.findall('.//main:t', NS)]
-        strings.append(''.join(texts))
-    return strings
-
-def load_workbook_info(zf):
-    wb = ET.fromstring(zf.read('xl/workbook.xml'))
-    rels = ET.fromstring(zf.read('xl/_rels/workbook.xml.rels'))
-    rid_to_target = {}
-    for rel in rels:
-        rid_to_target[rel.attrib['Id']] = rel.attrib['Target']
-    sheets = []
-    for sheet in wb.findall('main:sheets/main:sheet', NS):
-        name = sheet.attrib['name']
-        rid = sheet.attrib['{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id']
-        target = rid_to_target[rid]
-        if target.startswith('worksheets/'):
-            sheets.append((name, 'xl/' + target))
-    return sheets
-
-def cell_value(cell, shared_strings):
-    cell_type = cell.attrib.get('t')
-    if cell_type == 'inlineStr':
-      texts = [t.text or '' for t in cell.findall('.//main:t', NS)]
-      return ''.join(texts)
-    v = cell.find('main:v', NS)
-    if v is None:
-      texts = [t.text or '' for t in cell.findall('.//main:t', NS)]
-      return ''.join(texts) if texts else None
-    raw = v.text
-    if cell_type == 's':
-      return shared_strings[int(raw)]
-    return raw
-
-def rows_from_sheet(zf, sheet_path, shared_strings):
-    root = ET.fromstring(zf.read(sheet_path))
-    rows = []
-    for row in root.findall('main:sheetData/main:row', NS):
-        current = {}
-        for c in row.findall('main:c', NS):
-            current[col_letters(c.attrib.get('r', ''))] = cell_value(c, shared_strings)
-        if any(v not in (None, '') for v in current.values()):
-            rows.append(current)
-    return rows
-
-with ZipFile(sys.argv[1]) as zf:
-    shared = load_shared_strings(zf)
-    payload = {}
-    for name, sheet_path in load_workbook_info(zf):
-        payload[name] = rows_from_sheet(zf, sheet_path, shared)
-    print(json.dumps(payload, ensure_ascii=False))
-`;
+const scriptsDir = path.join(root, "scripts");
+const pythonPath = process.env.PYTHON ?? "python";
+const extractorScriptPath = path.join(scriptsDir, "extract-xlsx.py");
 
 function normalizeDate(value) {
   if (!value) return "";
@@ -100,8 +30,17 @@ function makeOrderId(index) {
   return `hist_ord_${index.toString().padStart(4, "0")}`;
 }
 
+function resolveOrderAmount(row, sourceType) {
+  if (sourceType === "self_owned") {
+    const totalPrice = Number(row["M"] ?? 0);
+    const income = Number(row["H"] ?? 0);
+    return totalPrice > 0 ? totalPrice : income;
+  }
+  return Number(row["G"] ?? 0);
+}
+
 function buildOrder(row, index, sourceType) {
-  const amount = Number(row[sourceType === "self_owned" ? "H" : "G"] ?? 0);
+  const amount = resolveOrderAmount(row, sourceType);
   const settledAmount = Number(row[sourceType === "self_owned" ? "N" : "M"] ?? 0);
   const receivableAmount = Number(
     row[sourceType === "self_owned" ? "O" : "Q"] ?? Math.max(amount - settledAmount, 0)
@@ -169,12 +108,66 @@ function buildClient(order) {
   };
 }
 
-const workbookPath = path.join(docsDir, "fada❤whi (1).xlsx");
-const { stdout } = await execFileAsync(pythonPath, ["-c", extractorScript, workbookPath], {
+const workbookPath = process.argv[2]
+  ? path.resolve(process.argv[2])
+  : path.join(rawDir, "fada❤whi (2).xlsx");
+
+const seedWriters = [
+  {
+    id: "wri_001",
+    name: "顾言",
+    specialties: ["教育学", "心理学"],
+    availability: "busy",
+    capacity: 6,
+    activeOrderCount: 5,
+    rating: 4.8,
+    completionRate: 0.96,
+    averageTurnaroundDays: 4.5,
+    priceTier: "premium",
+    ownerName: "自营",
+    settlementMode: "固定稿费",
+    notes: "适合教育学与定量分析类订单。"
+  },
+  {
+    id: "wri_002",
+    name: "秦放",
+    specialties: ["新闻传播学", "市场营销"],
+    availability: "available",
+    capacity: 5,
+    activeOrderCount: 2,
+    rating: 4.6,
+    completionRate: 0.92,
+    averageTurnaroundDays: 5.2,
+    priceTier: "advanced",
+    ownerName: "小樊",
+    settlementMode: "通道费",
+    notes: "适合转包与修改类稿件。"
+  },
+  {
+    id: "wri_003",
+    name: "陆哲",
+    specialties: ["法学", "公共管理"],
+    availability: "available",
+    capacity: 4,
+    activeOrderCount: 1,
+    rating: 4.9,
+    completionRate: 0.98,
+    averageTurnaroundDays: 3.9,
+    priceTier: "premium",
+    ownerName: "自营",
+    settlementMode: "固定稿费",
+    notes: "适合高客单价法学项目。"
+  }
+];
+const extractedPath = path.join(dataDir, ".workbook-extracted.json");
+
+await fs.mkdir(dataDir, { recursive: true });
+await execFileAsync(pythonPath, [extractorScriptPath, workbookPath, extractedPath], {
   maxBuffer: 20 * 1024 * 1024
 });
 
-const workbook = JSON.parse(stdout);
+const workbook = JSON.parse(await fs.readFile(extractedPath, "utf-8"));
+await fs.unlink(extractedPath).catch(() => {});
 const selfRows = (workbook["第一桶金100w（自接）"] ?? []).slice(1).filter((row) => row["F"]);
 const outsourcedRows = (workbook["第一桶金100w（转包）"] ?? []).slice(1).filter((row) => row["E"]);
 
@@ -185,8 +178,18 @@ const importedOrders = [
 
 const importedClients = importedOrders.map((order) => buildClient(order));
 
-await fs.mkdir(dataDir, { recursive: true });
-await fs.writeFile(path.join(dataDir, "imported-orders.json"), JSON.stringify(importedOrders, null, 2), "utf-8");
-await fs.writeFile(path.join(dataDir, "imported-clients.json"), JSON.stringify(importedClients, null, 2), "utf-8");
+const runtimeFiles = {
+  "imported-orders.json": importedOrders,
+  "imported-clients.json": importedClients,
+  "orders.json": importedOrders,
+  "clients.json": importedClients,
+  "writers.json": seedWriters
+};
 
+for (const [filename, payload] of Object.entries(runtimeFiles)) {
+  await fs.writeFile(path.join(dataDir, filename), JSON.stringify(payload, null, 2), "utf-8");
+}
+
+console.log(`Source: ${workbookPath}`);
 console.log(`Imported ${importedOrders.length} orders and ${importedClients.length} clients.`);
+console.log(`Wrote runtime data to ${dataDir} (clients.json, orders.json, writers.json).`);

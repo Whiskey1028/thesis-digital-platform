@@ -75,8 +75,25 @@ export function ClientOrderDialog({
           title={`${client.name} 的工单草稿`}
           subtitle="客户信息会在右侧关联展示，重叠字段默认回显，提交前仍可继续调整业务字段。"
           onClose={() => setOpen(false)}
+          footer={
+            <div className="flex items-center justify-between rounded-[22px] border border-slate-800 bg-slate-950 px-5 py-4 text-white shadow-2xl">
+              <div>
+                <p className="text-sm text-slate-300">来源自动继承</p>
+                <p className="mt-1 text-lg font-medium">{client.sourceChannel}</p>
+              </div>
+              <button
+                type="submit"
+                form="client-order-form"
+                disabled={isPending}
+                className="rounded-full bg-white px-5 py-2 text-sm font-medium text-slate-950 disabled:opacity-60"
+              >
+                {isPending ? "创建中..." : "确认创建工单"}
+              </button>
+            </div>
+          }
         >
           <form
+            id="client-order-form"
             className="space-y-5"
             onSubmit={(event) => {
               event.preventDefault();
@@ -319,20 +336,6 @@ export function ClientOrderDialog({
                   <div className="rounded-[18px] bg-white px-4 py-3">预设截止: {client.preferredDeadline ?? "-"}</div>
                 </div>
               </aside>
-            </div>
-
-            <div className="sticky bottom-0 flex items-center justify-between rounded-[22px] border border-slate-800 bg-slate-950 px-5 py-4 text-white shadow-2xl">
-              <div>
-                <p className="text-sm text-slate-300">来源自动继承</p>
-                <p className="mt-1 text-lg font-medium">{client.sourceChannel}</p>
-              </div>
-              <button
-                type="submit"
-                disabled={isPending}
-                className="rounded-full bg-white px-5 py-2 text-sm font-medium text-slate-950 disabled:opacity-60"
-              >
-                {isPending ? "创建中..." : "确认创建工单"}
-              </button>
             </div>
           </form>
 
