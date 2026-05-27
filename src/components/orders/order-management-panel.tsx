@@ -8,6 +8,7 @@ import { FieldRow } from "@/components/ui/field-row";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Pagination } from "@/components/ui/pagination";
 import { ModalShell } from "@/components/ui/modal-shell";
+import { ExportExcelButton } from "@/components/ui/export-excel-button";
 import { SearchableSingleSelect, SegmentedSelect } from "@/components/ui/form-controls";
 import { serviceTypeOptions } from "@/lib/constants";
 import {
@@ -502,6 +503,7 @@ export function OrderManagementPanel({
             >
               重置筛选
             </button>
+            <ExportExcelButton exportUrl="/api/export/orders" label="导出工单 Excel" />
           </div>
 
           <div className="space-y-3">

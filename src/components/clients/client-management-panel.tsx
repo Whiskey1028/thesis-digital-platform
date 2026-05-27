@@ -6,6 +6,7 @@ import { ClientTable } from "@/components/clients/client-table";
 import { FieldRow } from "@/components/ui/field-row";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ModalShell } from "@/components/ui/modal-shell";
+import { ExportExcelButton } from "@/components/ui/export-excel-button";
 import { Pagination } from "@/components/ui/pagination";
 import {
   getBooleanParam,
@@ -235,6 +236,7 @@ export function ClientManagementPanel({
             >
               重置筛选
             </button>
+            <ExportExcelButton exportUrl="/api/export/clients" label="导出客户 Excel" />
           </div>
 
           {focusedClientId ? (

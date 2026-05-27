@@ -6,6 +6,7 @@ import { WriterGrid } from "@/components/writers/writer-grid";
 import { FieldRow } from "@/components/ui/field-row";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ModalShell } from "@/components/ui/modal-shell";
+import { ExportExcelButton } from "@/components/ui/export-excel-button";
 import { Pagination } from "@/components/ui/pagination";
 import {
   getBooleanParam,
@@ -227,6 +228,7 @@ export function WriterManagementPanel({ writers }: { writers: Writer[] }) {
             >
               重置筛选
             </button>
+            <ExportExcelButton exportUrl="/api/export/writers" label="导出写手 Excel" />
           </div>
 
           {focusedWriterId ? (
