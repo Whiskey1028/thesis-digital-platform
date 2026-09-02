@@ -9,6 +9,14 @@ import { Pagination } from "@/components/ui/pagination";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ExportExcelButton } from "@/components/ui/export-excel-button";
 import { SearchableSingleSelect, SegmentedSelect } from "@/components/ui/form-controls";
+import {
+  FilterBarShell,
+  FilterChipRow,
+  FilteredEmptyState,
+  ResetFilterButton,
+  filterControlClass,
+  type FilterChip
+} from "@/components/ui/filter-bar";
 import { serviceTypeOptions } from "@/lib/constants";
 import { apiFetch, formatApiError } from "@/lib/client/api-fetch";
 import {
@@ -18,6 +26,18 @@ import {
   getStringParam,
   replaceUrlParams
 } from "@/lib/client-url-state";
+import {
+  countActiveFilters,
+  isEnumFilterActive,
+  isTextFilterActive
+} from "@/lib/ui/filter-state";
+import {
+  labelOf,
+  orderStatusLabels,
+  settledStateLabels,
+  sourceTypeLabels,
+  urgencyLabels
+} from "@/lib/ui/labels";
 import type { PaginatedResult } from "@/lib/api/pagination";
 import type { Order, Writer } from "@/lib/types";
 
@@ -74,13 +94,15 @@ export function OrderManagementPanel({
         return;
       }
 
-      replaceUrlParams({
-        pathname,
-        router,
-        updates: {
-          orderQuery: queryInput || null,
-          orderPage: null
-        }
+      startTransition(() => {
+        replaceUrlParams({
+          pathname,
+          router,
+          updates: {
+            orderQuery: queryInput || null,
+            orderPage: null
+          }
+        });
       });
     }, 400);
 
@@ -98,7 +120,26 @@ export function OrderManagementPanel({
   }, [listOpen, pathname, router]);
 
   function updateParams(updates: Record<string, string | null>) {
-    replaceUrlParams({ pathname, router, updates });
+    startTransition(() => {
+      replaceUrlParams({ pathname, router, updates });
+    });
+  }
+
+  function resetFilters() {
+    setQueryInput("");
+    updateParams({
+      orderQuery: null,
+      orderStatus: null,
+      orderSourceType: null,
+      orderUrgency: null,
+      orderSettledState: null,
+      orderServiceType: null,
+      orderSort: null,
+      clientId: null,
+      writerId: null,
+      orderPage: null,
+      orderPageSize: null
+    });
   }
 
   function openOrderEditor(order: Order) {
@@ -110,22 +151,103 @@ export function OrderManagementPanel({
     setViewingOrder(null);
   }
 
+  const queryActive = isTextFilterActive(queryInput);
+  const statusActive = isEnumFilterActive(status);
+  const sourceActive = isEnumFilterActive(sourceType);
+  const urgencyActive = isEnumFilterActive(urgency);
+  const settledActive = isEnumFilterActive(settledState);
+  const serviceActive = isEnumFilterActive(serviceType);
+  const clientActive = isTextFilterActive(clientId);
+  const writerActive = isTextFilterActive(writerId);
+  const activeFilterCount = countActiveFilters([
+    queryActive,
+    statusActive,
+    sourceActive,
+    urgencyActive,
+    settledActive,
+    serviceActive,
+    clientActive,
+    writerActive
+  ]);
+  const hasActiveFilters = activeFilterCount > 0;
+
+  const chips: FilterChip[] = [];
+  if (queryActive) {
+    chips.push({
+      key: "q",
+      label: `搜索：${queryInput}`,
+      onClear: () => {
+        setQueryInput("");
+        updateParams({ orderQuery: null, orderPage: null });
+      }
+    });
+  }
+  if (statusActive) {
+    chips.push({
+      key: "status",
+      label: `状态：${labelOf(orderStatusLabels, status)}`,
+      onClear: () => updateParams({ orderStatus: null, orderPage: null })
+    });
+  }
+  if (sourceActive) {
+    chips.push({
+      key: "source",
+      label: `来源：${labelOf(sourceTypeLabels, sourceType)}`,
+      onClear: () => updateParams({ orderSourceType: null, orderPage: null })
+    });
+  }
+  if (urgencyActive) {
+    chips.push({
+      key: "urgency",
+      label: `优先级：${labelOf(urgencyLabels, urgency)}`,
+      onClear: () => updateParams({ orderUrgency: null, orderPage: null })
+    });
+  }
+  if (settledActive) {
+    chips.push({
+      key: "settled",
+      label: labelOf(settledStateLabels, settledState),
+      onClear: () => updateParams({ orderSettledState: null, orderPage: null })
+    });
+  }
+  if (serviceActive) {
+    chips.push({
+      key: "service",
+      label: `服务：${serviceType}`,
+      onClear: () => updateParams({ orderServiceType: null, orderPage: null })
+    });
+  }
+  if (clientActive) {
+    chips.push({
+      key: "clientId",
+      label: "指定客户",
+      onClear: () => updateParams({ clientId: null, orderPage: null })
+    });
+  }
+  if (writerActive) {
+    chips.push({
+      key: "writerId",
+      label: "指定写手",
+      onClear: () => updateParams({ writerId: null, orderPage: null })
+    });
+  }
+
   const totalPages = Math.max(1, Math.ceil(list.total / list.pageSize));
 
   return (
     <div className="space-y-6">
       <CollapsibleSection
         title="工单列表"
-        description="筛选与分页在服务端执行，只加载当前页数据。"
         open={listOpen}
         onToggle={setListOpen}
+        activeFilterCount={activeFilterCount}
       >
-        <div className="mb-5 grid gap-4 rounded-[24px] border border-white/60 bg-white/75 p-5 md:grid-cols-4">
+        <FilterBarShell active={hasActiveFilters}>
           <input
             value={queryInput}
             onChange={(event) => setQueryInput(event.target.value)}
             placeholder="搜索题目、客户、负责人"
-            className={inputClassName}
+            className={filterControlClass(queryActive)}
           />
           <select
             value={status}
@@ -135,12 +257,12 @@ export function OrderManagementPanel({
                 orderPage: null
               })
             }
-            className={inputClassName}
+            className={filterControlClass(statusActive)}
           >
             <option value="all">全部状态</option>
             {statusOptions.slice(1).map((item) => (
               <option key={item} value={item}>
-                {item}
+                {labelOf(orderStatusLabels, item)}
               </option>
             ))}
           </select>
@@ -152,7 +274,7 @@ export function OrderManagementPanel({
                 orderPage: null
               })
             }
-            className={inputClassName}
+            className={filterControlClass(sourceActive)}
           >
             <option value="all">全部来源</option>
             <option value="self_owned">自接</option>
@@ -166,12 +288,12 @@ export function OrderManagementPanel({
                 orderPage: null
               })
             }
-            className={inputClassName}
+            className={filterControlClass(urgencyActive)}
           >
             <option value="all">全部优先级</option>
-            <option value="low">low</option>
-            <option value="medium">medium</option>
-            <option value="high">high</option>
+            <option value="low">低</option>
+            <option value="medium">中</option>
+            <option value="high">高</option>
           </select>
           <select
             value={settledState}
@@ -181,7 +303,7 @@ export function OrderManagementPanel({
                 orderPage: null
               })
             }
-            className={inputClassName}
+            className={filterControlClass(settledActive)}
           >
             <option value="all">全部结清状态</option>
             <option value="settled">已结清</option>
@@ -195,7 +317,7 @@ export function OrderManagementPanel({
                 orderPage: null
               })
             }
-            className={inputClassName}
+            className={filterControlClass(serviceActive)}
           >
             <option value="all">全部服务类型</option>
             {serviceTypeFilterOptions.map((option) => (
@@ -212,7 +334,7 @@ export function OrderManagementPanel({
                 orderPage: null
               })
             }
-            className={inputClassName}
+            className={filterControlClass(false)}
           >
             <option value="created_desc">按创建时间最新</option>
             <option value="amount_desc">按金额从高到低</option>
@@ -220,65 +342,39 @@ export function OrderManagementPanel({
             <option value="profit_desc">按利润从高到低</option>
           </select>
           <div className="flex items-center rounded-[18px] bg-slate-950 px-4 py-3 text-sm text-white">
-            共 {list.total} 条工单
+            共 {list.total} 条工单{isPending ? " · 更新中" : ""}
           </div>
-          <button
-            type="button"
-            onClick={() =>
-              updateParams({
-                orderQuery: null,
-                orderStatus: null,
-                orderSourceType: null,
-                orderUrgency: null,
-                orderSettledState: null,
-                orderServiceType: null,
-                orderSort: null,
-                clientId: null,
-                writerId: null,
-                orderPage: null,
-                orderPageSize: null
-              })
-            }
-            className="rounded-[18px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700"
-          >
-            重置筛选
-          </button>
+          <ResetFilterButton disabled={!hasActiveFilters} onClick={resetFilters} />
           <ExportExcelButton exportUrl="/api/export/orders" label="导出工单 Excel" />
-        </div>
+        </FilterBarShell>
 
-        {clientId || writerId ? (
-          <div className="mb-5 flex flex-wrap items-center gap-3 rounded-[20px] bg-slate-50 px-4 py-3 text-sm text-slate-500">
-            {clientId ? <span>当前按客户 {clientId} 过滤。</span> : null}
-            {writerId ? <span>当前按写手 {writerId} 过滤。</span> : null}
-            <button
-              type="button"
-              onClick={() => updateParams({ clientId: null, writerId: null, orderPage: null })}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700"
-            >
-              清除关联过滤
-            </button>
+        <FilterChipRow chips={chips} />
+
+        <div className={isPending ? "opacity-55 transition-opacity" : "transition-opacity"}>
+          {list.items.length === 0 ? (
+            <FilteredEmptyState hasActiveFilters={hasActiveFilters} onReset={resetFilters} />
+          ) : (
+            <OrderTable
+              orders={list.items}
+              writers={writers}
+              onViewOrder={setViewingOrder}
+              onEditOrder={openOrderEditor}
+            />
+          )}
+          <div className="mt-4">
+            <Pagination
+              page={Math.min(page, totalPages)}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              onChange={(nextPage) => updateParams({ orderPage: nextPage === 1 ? null : String(nextPage) })}
+              onPageSizeChange={(size) =>
+                updateParams({
+                  orderPageSize: size === 10 ? null : String(size),
+                  orderPage: null
+                })
+              }
+            />
           </div>
-        ) : null}
-
-        <OrderTable
-          orders={list.items}
-          writers={writers}
-          onViewOrder={setViewingOrder}
-          onEditOrder={openOrderEditor}
-        />
-        <div className="mt-4">
-          <Pagination
-            page={Math.min(page, totalPages)}
-            totalPages={totalPages}
-            pageSize={pageSize}
-            onChange={(nextPage) => updateParams({ orderPage: nextPage === 1 ? null : String(nextPage) })}
-            onPageSizeChange={(size) =>
-              updateParams({
-                orderPageSize: size === 10 ? null : String(size),
-                orderPage: null
-              })
-            }
-          />
         </div>
       </CollapsibleSection>
 

@@ -6,6 +6,14 @@ import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ExportExcelButton } from "@/components/ui/export-excel-button";
 import { Pagination } from "@/components/ui/pagination";
+import {
+  FilterBarShell,
+  FilterChipRow,
+  FilteredEmptyState,
+  ResetFilterButton,
+  filterControlClass,
+  type FilterChip
+} from "@/components/ui/filter-bar";
 import { apiFetch, formatApiError } from "@/lib/client/api-fetch";
 import {
   getBooleanParam,
@@ -14,6 +22,12 @@ import {
   getStringParam,
   replaceUrlParams
 } from "@/lib/client-url-state";
+import {
+  countActiveFilters,
+  isEnumFilterActive,
+  isTextFilterActive
+} from "@/lib/ui/filter-state";
+import { labelOf, riskLevelLabels } from "@/lib/ui/labels";
 import type { PaginatedResult } from "@/lib/api/pagination";
 import type { ClientListItem } from "@/lib/api/list-queries";
 import type { Client, Writer } from "@/lib/types";
@@ -58,13 +72,15 @@ export function ClientManagementPanel({
         return;
       }
 
-      replaceUrlParams({
-        pathname,
-        router,
-        updates: {
-          clientQuery: queryInput || null,
-          clientPage: null
-        }
+      startTransition(() => {
+        replaceUrlParams({
+          pathname,
+          router,
+          updates: {
+            clientQuery: queryInput || null,
+            clientPage: null
+          }
+        });
       });
     }, 400);
 
@@ -82,7 +98,53 @@ export function ClientManagementPanel({
   }, [listOpen, pathname, router]);
 
   function updateParams(updates: Record<string, string | null>) {
-    replaceUrlParams({ pathname, router, updates });
+    startTransition(() => {
+      replaceUrlParams({ pathname, router, updates });
+    });
+  }
+
+  function resetFilters() {
+    setQueryInput("");
+    updateParams({
+      clientQuery: null,
+      clientRisk: null,
+      clientSort: null,
+      clientId: null,
+      clientPage: null,
+      clientPageSize: null
+    });
+  }
+
+  const queryActive = isTextFilterActive(queryInput);
+  const riskActive = isEnumFilterActive(riskLevel);
+  const focusedActive = isTextFilterActive(focusedClientId);
+  const activeFilterCount = countActiveFilters([queryActive, riskActive, focusedActive]);
+  const hasActiveFilters = activeFilterCount > 0;
+
+  const chips: FilterChip[] = [];
+  if (queryActive) {
+    chips.push({
+      key: "q",
+      label: `搜索：${queryInput}`,
+      onClear: () => {
+        setQueryInput("");
+        updateParams({ clientQuery: null, clientPage: null });
+      }
+    });
+  }
+  if (riskActive) {
+    chips.push({
+      key: "risk",
+      label: `风险：${labelOf(riskLevelLabels, riskLevel)}`,
+      onClear: () => updateParams({ clientRisk: null, clientPage: null })
+    });
+  }
+  if (focusedActive) {
+    chips.push({
+      key: "clientId",
+      label: "指定客户",
+      onClear: () => updateParams({ clientId: null, clientPage: null })
+    });
   }
 
   const totalPages = Math.max(1, Math.ceil(list.total / list.pageSize));
@@ -91,16 +153,16 @@ export function ClientManagementPanel({
     <div className="space-y-6">
       <CollapsibleSection
         title="客户列表"
-        description="筛选与分页在服务端执行，只加载当前页数据。"
         open={listOpen}
         onToggle={setListOpen}
+        activeFilterCount={activeFilterCount}
       >
-        <div className="mb-5 grid gap-4 rounded-[24px] border border-white/60 bg-white/75 p-5 md:grid-cols-4">
+        <FilterBarShell active={hasActiveFilters}>
           <input
             value={queryInput}
             onChange={(event) => setQueryInput(event.target.value)}
             placeholder="搜索客户、学校、专业、联系方式"
-            className={inputClassName}
+            className={filterControlClass(queryActive)}
           />
           <select
             value={riskLevel}
@@ -110,12 +172,12 @@ export function ClientManagementPanel({
                 clientPage: null
               })
             }
-            className={inputClassName}
+            className={filterControlClass(riskActive)}
           >
             <option value="all">全部风险等级</option>
-            <option value="low">low</option>
-            <option value="medium">medium</option>
-            <option value="high">high</option>
+            <option value="low">低风险</option>
+            <option value="medium">中风险</option>
+            <option value="high">高风险</option>
           </select>
           <select
             value={sort}
@@ -125,7 +187,7 @@ export function ClientManagementPanel({
                 clientPage: null
               })
             }
-            className={inputClassName}
+            className={filterControlClass(false)}
           >
             <option value="created_desc">按最新创建</option>
             <option value="name_asc">按姓名 A-Z</option>
@@ -133,59 +195,39 @@ export function ClientManagementPanel({
             <option value="budget_desc">按预算从高到低</option>
           </select>
           <div className="flex items-center rounded-[18px] bg-slate-950 px-4 py-3 text-sm text-white">
-            共 {list.total} 位客户
+            共 {list.total} 位客户{isPending ? " · 更新中" : ""}
           </div>
-          <button
-            type="button"
-            onClick={() =>
-              updateParams({
-                clientQuery: null,
-                clientRisk: null,
-                clientSort: null,
-                clientId: null,
-                clientPage: null,
-                clientPageSize: null
-              })
-            }
-            className="rounded-[18px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700"
-          >
-            重置筛选
-          </button>
+          <ResetFilterButton disabled={!hasActiveFilters} onClick={resetFilters} />
           <ExportExcelButton exportUrl="/api/export/clients" label="导出客户 Excel" />
-        </div>
+        </FilterBarShell>
 
-        {focusedClientId ? (
-          <div className="mb-5 flex flex-wrap items-center gap-3 rounded-[20px] bg-slate-50 px-4 py-3 text-sm text-slate-500">
-            <span>当前仅展示指定客户。</span>
-            <button
-              type="button"
-              onClick={() => updateParams({ clientId: null, clientPage: null })}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700"
-            >
-              清除指定客户
-            </button>
+        <FilterChipRow chips={chips} />
+
+        <div className={isPending ? "opacity-55 transition-opacity" : "transition-opacity"}>
+          {list.items.length === 0 ? (
+            <FilteredEmptyState hasActiveFilters={hasActiveFilters} onReset={resetFilters} />
+          ) : (
+            <ClientTable
+              clients={list.items}
+              writers={writers}
+              onViewClient={setViewingClient}
+              onEditClient={setEditingClient}
+            />
+          )}
+          <div className="mt-4">
+            <Pagination
+              page={Math.min(page, totalPages)}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              onChange={(nextPage) => updateParams({ clientPage: nextPage === 1 ? null : String(nextPage) })}
+              onPageSizeChange={(size) =>
+                updateParams({
+                  clientPageSize: size === 10 ? null : String(size),
+                  clientPage: null
+                })
+              }
+            />
           </div>
-        ) : null}
-
-        <ClientTable
-          clients={list.items}
-          writers={writers}
-          onViewClient={setViewingClient}
-          onEditClient={setEditingClient}
-        />
-        <div className="mt-4">
-          <Pagination
-            page={Math.min(page, totalPages)}
-            totalPages={totalPages}
-            pageSize={pageSize}
-            onChange={(nextPage) => updateParams({ clientPage: nextPage === 1 ? null : String(nextPage) })}
-            onPageSizeChange={(size) =>
-              updateParams({
-                clientPageSize: size === 10 ? null : String(size),
-                clientPage: null
-              })
-            }
-          />
         </div>
       </CollapsibleSection>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { ActiveFilterBadge } from "@/components/ui/filter-bar";
 
 export function CollapsibleSection({
   title,
@@ -8,6 +9,7 @@ export function CollapsibleSection({
   open,
   onToggle,
   defaultOpen = true,
+  activeFilterCount = 0,
   children
 }: {
   title: string;
@@ -15,6 +17,7 @@ export function CollapsibleSection({
   open?: boolean;
   onToggle?: (open: boolean) => void;
   defaultOpen?: boolean;
+  activeFilterCount?: number;
   children: ReactNode;
 }) {
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
@@ -33,7 +36,10 @@ export function CollapsibleSection({
     <section className="rounded-[28px] border border-white/60 bg-white/72 p-5 shadow-soft">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-xl font-semibold text-slate-950">{title}</h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-xl font-semibold text-slate-950">{title}</h3>
+            <ActiveFilterBadge count={activeFilterCount} />
+          </div>
           {description ? <p className="mt-2 text-sm leading-6 text-slate-500">{description}</p> : null}
         </div>
         <button

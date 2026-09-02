@@ -8,6 +8,14 @@ import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ExportExcelButton } from "@/components/ui/export-excel-button";
 import { Pagination } from "@/components/ui/pagination";
+import {
+  FilterBarShell,
+  FilterChipRow,
+  FilteredEmptyState,
+  ResetFilterButton,
+  filterControlClass,
+  type FilterChip
+} from "@/components/ui/filter-bar";
 import { apiFetch, formatApiError } from "@/lib/client/api-fetch";
 import {
   getBooleanParam,
@@ -16,6 +24,12 @@ import {
   getStringParam,
   replaceUrlParams
 } from "@/lib/client-url-state";
+import {
+  countActiveFilters,
+  isEnumFilterActive,
+  isTextFilterActive
+} from "@/lib/ui/filter-state";
+import { availabilityLabels, labelOf } from "@/lib/ui/labels";
 import type { PaginatedResult } from "@/lib/api/pagination";
 import type { Writer } from "@/lib/types";
 
@@ -51,13 +65,15 @@ export function WriterManagementPanel({ list }: { list: PaginatedResult<Writer> 
         return;
       }
 
-      replaceUrlParams({
-        pathname,
-        router,
-        updates: {
-          writerQuery: queryInput || null,
-          writerPage: null
-        }
+      startTransition(() => {
+        replaceUrlParams({
+          pathname,
+          router,
+          updates: {
+            writerQuery: queryInput || null,
+            writerPage: null
+          }
+        });
       });
     }, 400);
 
@@ -75,7 +91,53 @@ export function WriterManagementPanel({ list }: { list: PaginatedResult<Writer> 
   }, [listOpen, pathname, router]);
 
   function updateParams(updates: Record<string, string | null>) {
-    replaceUrlParams({ pathname, router, updates });
+    startTransition(() => {
+      replaceUrlParams({ pathname, router, updates });
+    });
+  }
+
+  function resetFilters() {
+    setQueryInput("");
+    updateParams({
+      writerQuery: null,
+      writerAvailability: null,
+      writerSort: null,
+      writerId: null,
+      writerPage: null,
+      writerPageSize: null
+    });
+  }
+
+  const queryActive = isTextFilterActive(queryInput);
+  const availabilityActive = isEnumFilterActive(availability);
+  const focusedActive = isTextFilterActive(focusedWriterId);
+  const activeFilterCount = countActiveFilters([queryActive, availabilityActive, focusedActive]);
+  const hasActiveFilters = activeFilterCount > 0;
+
+  const chips: FilterChip[] = [];
+  if (queryActive) {
+    chips.push({
+      key: "q",
+      label: `搜索：${queryInput}`,
+      onClear: () => {
+        setQueryInput("");
+        updateParams({ writerQuery: null, writerPage: null });
+      }
+    });
+  }
+  if (availabilityActive) {
+    chips.push({
+      key: "availability",
+      label: `状态：${labelOf(availabilityLabels, availability)}`,
+      onClear: () => updateParams({ writerAvailability: null, writerPage: null })
+    });
+  }
+  if (focusedActive) {
+    chips.push({
+      key: "writerId",
+      label: "指定写手",
+      onClear: () => updateParams({ writerId: null, writerPage: null })
+    });
   }
 
   const totalPages = Math.max(1, Math.ceil(list.total / list.pageSize));
@@ -84,16 +146,16 @@ export function WriterManagementPanel({ list }: { list: PaginatedResult<Writer> 
     <div className="space-y-6">
       <CollapsibleSection
         title="写手列表"
-        description="筛选与分页在服务端执行，只加载当前页数据。"
         open={listOpen}
         onToggle={setListOpen}
+        activeFilterCount={activeFilterCount}
       >
-        <div className="mb-5 grid gap-4 rounded-[24px] border border-white/60 bg-white/75 p-5 md:grid-cols-4">
+        <FilterBarShell active={hasActiveFilters}>
           <input
             value={queryInput}
             onChange={(event) => setQueryInput(event.target.value)}
             placeholder="搜索写手、专长、负责人"
-            className={inputClassName}
+            className={filterControlClass(queryActive)}
           />
           <select
             value={availability}
@@ -103,12 +165,12 @@ export function WriterManagementPanel({ list }: { list: PaginatedResult<Writer> 
                 writerPage: null
               })
             }
-            className={inputClassName}
+            className={filterControlClass(availabilityActive)}
           >
             <option value="all">全部状态</option>
-            <option value="available">available</option>
-            <option value="busy">busy</option>
-            <option value="offline">offline</option>
+            <option value="available">空闲</option>
+            <option value="busy">忙碌</option>
+            <option value="offline">离线</option>
           </select>
           <select
             value={sort}
@@ -118,7 +180,7 @@ export function WriterManagementPanel({ list }: { list: PaginatedResult<Writer> 
                 writerPage: null
               })
             }
-            className={inputClassName}
+            className={filterControlClass(false)}
           >
             <option value="rating_desc">按评分从高到低</option>
             <option value="load_desc">按负载从高到低</option>
@@ -126,58 +188,38 @@ export function WriterManagementPanel({ list }: { list: PaginatedResult<Writer> 
             <option value="name_asc">按姓名 A-Z</option>
           </select>
           <div className="flex items-center rounded-[18px] bg-slate-950 px-4 py-3 text-sm text-white">
-            共 {list.total} 位写手
+            共 {list.total} 位写手{isPending ? " · 更新中" : ""}
           </div>
-          <button
-            type="button"
-            onClick={() =>
-              updateParams({
-                writerQuery: null,
-                writerAvailability: null,
-                writerSort: null,
-                writerId: null,
-                writerPage: null,
-                writerPageSize: null
-              })
-            }
-            className="rounded-[18px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700"
-          >
-            重置筛选
-          </button>
+          <ResetFilterButton disabled={!hasActiveFilters} onClick={resetFilters} />
           <ExportExcelButton exportUrl="/api/export/writers" label="导出写手 Excel" />
-        </div>
+        </FilterBarShell>
 
-        {focusedWriterId ? (
-          <div className="mb-5 flex flex-wrap items-center gap-3 rounded-[20px] bg-slate-50 px-4 py-3 text-sm text-slate-500">
-            <span>当前仅展示指定写手。</span>
-            <button
-              type="button"
-              onClick={() => updateParams({ writerId: null, writerPage: null })}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700"
-            >
-              清除指定写手
-            </button>
+        <FilterChipRow chips={chips} />
+
+        <div className={isPending ? "opacity-55 transition-opacity" : "transition-opacity"}>
+          {list.items.length === 0 ? (
+            <FilteredEmptyState hasActiveFilters={hasActiveFilters} onReset={resetFilters} />
+          ) : (
+            <WriterGrid
+              writers={list.items}
+              onViewWriter={setViewingWriter}
+              onEditWriter={setEditingWriter}
+            />
+          )}
+          <div className="mt-4">
+            <Pagination
+              page={Math.min(page, totalPages)}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              onChange={(nextPage) => updateParams({ writerPage: nextPage === 1 ? null : String(nextPage) })}
+              onPageSizeChange={(size) =>
+                updateParams({
+                  writerPageSize: size === 8 ? null : String(size),
+                  writerPage: null
+                })
+              }
+            />
           </div>
-        ) : null}
-
-        <WriterGrid
-          writers={list.items}
-          onViewWriter={setViewingWriter}
-          onEditWriter={setEditingWriter}
-        />
-        <div className="mt-4">
-          <Pagination
-            page={Math.min(page, totalPages)}
-            totalPages={totalPages}
-            pageSize={pageSize}
-            onChange={(nextPage) => updateParams({ writerPage: nextPage === 1 ? null : String(nextPage) })}
-            onPageSizeChange={(size) =>
-              updateParams({
-                writerPageSize: size === 8 ? null : String(size),
-                writerPage: null
-              })
-            }
-          />
         </div>
       </CollapsibleSection>
 

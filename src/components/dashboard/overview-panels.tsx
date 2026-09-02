@@ -121,7 +121,7 @@ export function OverviewPanels({ metrics }: { metrics: OverviewMetrics }) {
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             {metrics.clientsByRisk.map(([risk, count]) => (
               <div key={risk} className="rounded-[24px] border border-slate-200/80 bg-white/80 p-5">
-                <p className="text-sm text-slate-500">{risk.toUpperCase()}</p>
+                <p className="text-sm text-slate-500">{risk === "low" ? "低风险" : risk === "medium" ? "中风险" : risk === "high" ? "高风险" : risk}</p>
                 <p className="mt-2 text-2xl font-semibold text-slate-900">{count}</p>
               </div>
             ))}
