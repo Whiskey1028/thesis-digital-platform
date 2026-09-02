@@ -1,27 +1,23 @@
 import { GlassCard } from "@/components/ui/glass-card";
 import { KpiCard } from "@/components/ui/kpi-card";
-import type { Client, Order, Writer } from "@/lib/types";
-import { buildDashboardMetrics } from "@/lib/analytics";
+import type { OverviewMetrics } from "@/lib/queries/overview";
 
 function formatSourceTypeLabel(sourceType: string) {
   return sourceType === "self_owned" ? "自接" : "转包";
 }
 
-export function OverviewPanels({
-  orders,
-  writers,
-  clients
-}: {
-  orders: Order[];
-  writers: Writer[];
-  clients: Client[];
-}) {
-  const metrics = buildDashboardMetrics({ orders, writers, clients });
+export function OverviewPanels({ metrics }: { metrics: OverviewMetrics }) {
+  const orderTotal = Math.max(metrics.filteredOrderCount, 1);
+  const clientTotal = Math.max(metrics.filteredClientCount, 1);
 
   return (
     <div className="space-y-6">
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <KpiCard label="总收入" value={`¥${metrics.totalRevenue.toLocaleString()}`} detail="自接取总价、转包取收入，全量工单汇总" />
+        <KpiCard
+          label="总收入"
+          value={`¥${metrics.totalRevenue.toLocaleString()}`}
+          detail="自接取总价、转包取收入，当前筛选口径"
+        />
         <KpiCard label="已回款" value={`¥${metrics.settledRevenue.toLocaleString()}`} detail="已结算金额汇总" />
         <KpiCard label="应收账款" value={`¥${metrics.totalReceivables.toLocaleString()}`} detail="未回款余额" />
         <KpiCard label="利润估算" value={`¥${metrics.totalProfit.toLocaleString()}`} detail="收入减去成本后口径" />
@@ -37,7 +33,6 @@ export function OverviewPanels({
       <section className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
         <GlassCard className="p-6">
           <h3 className="text-xl font-semibold text-slate-950">工单状态分布</h3>
-          <p className="mt-2 text-sm text-slate-500">快速查看流程堵点、交付节奏和待催节点。</p>
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             {metrics.ordersByStatus.map(([status, count]) => (
               <div key={status} className="rounded-[24px] bg-slate-950 px-4 py-5 text-white">
@@ -60,7 +55,7 @@ export function OverviewPanels({
                 <div className="mt-2 h-2 rounded-full bg-slate-200">
                   <div
                     className="h-2 rounded-full bg-slate-900"
-                    style={{ width: `${Math.max(18, (count / Math.max(orders.length, 1)) * 100)}%` }}
+                    style={{ width: `${Math.max(18, (count / orderTotal) * 100)}%` }}
                   />
                 </div>
               </div>
@@ -74,7 +69,10 @@ export function OverviewPanels({
           <h3 className="text-xl font-semibold text-slate-950">服务类型分布</h3>
           <div className="mt-6 space-y-3">
             {metrics.ordersByServiceType.map(([serviceType, count]) => (
-              <div key={serviceType} className="flex items-center justify-between rounded-[20px] bg-white/80 px-4 py-3">
+              <div
+                key={serviceType}
+                className="flex items-center justify-between rounded-[20px] bg-white/80 px-4 py-3"
+              >
                 <span className="text-sm text-slate-600">{serviceType}</span>
                 <span className="text-sm font-medium text-slate-950">{count}</span>
               </div>
@@ -94,7 +92,7 @@ export function OverviewPanels({
                 <div className="mt-2 h-2 rounded-full bg-slate-200">
                   <div
                     className="h-2 rounded-full bg-slate-900"
-                    style={{ width: `${Math.max(18, (count / Math.max(clients.length, 1)) * 100)}%` }}
+                    style={{ width: `${Math.max(18, (count / clientTotal) * 100)}%` }}
                   />
                 </div>
               </div>

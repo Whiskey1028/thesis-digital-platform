@@ -35,7 +35,7 @@ Client UI      →  lib/client/api-fetch  →  /api/*
 | **C 前端/UI** | 页面、弹窗、筛选 | `src/components/<domain>/` + 对应 `src/app/(dashboard)/` |
 | **D 业务规则** | 先客户后工单、派单 | [knowledge/domain-rules.md](knowledge/domain-rules.md) + README |
 | **E 已知问题/优化** | bug、性能、并发 | [knowledge/known-issues.md](knowledge/known-issues.md) |
-| **F 历史数据** | Excel 导入、清洗 | `scripts/import-history.mjs`、`scripts/repair-history-data.mjs` |
+| **F 历史数据** | Excel 导入、清洗 | `scripts/import-history.ts`、`scripts/repair-history-data.ts`（写入 `data/thesis.db`） |
 
 ## 3. 后端调查 — codegraph
 
@@ -62,7 +62,7 @@ codegraph_context(task=<业务域 + 动作>)
 4. API route — 映射入参/出参
 5. 前端 form / table — 展示与编辑
 6. `src/lib/mock-data.ts` — 种子数据（若影响首次启动）
-7. `scripts/import-history.mjs` — 若影响历史导入
+7. `scripts/import-history.ts` — 若影响历史导入（目标为 SQLite）
 
 ### 禁止事项
 

@@ -109,4 +109,4 @@ npm run mcp:thesis   # MCP stdio server（Cursor `.cursor/mcp.json`）
 
 - **主存储**：`data/thesis.db`（SQLite + WAL，`better-sqlite3`）
 - **首次启动**：空库时从 `data/*.json` 一次性导入（文件锁防并发重复种子）
-- **JSON 文件**：只读种子，运行期不再双写
+- **JSON 文件**：只读种子，运行期不再双写；`npm run import:history` / `repair:history` 会全量替换 SQLite，并刷新 JSON 种子

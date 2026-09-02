@@ -25,14 +25,17 @@ const inputClassName = "w-full rounded-[16px] border border-slate-200 bg-white p
 const sourceOptions = ["all", "self_owned", "outsourced"] as const;
 const statusOptions = ["all", "lead", "quoted", "in_progress", "review", "delivered", "after_sales"] as const;
 const urgencyOptions = ["all", "low", "medium", "high"] as const;
+const settledOptions = ["all", "settled", "unsettled"] as const;
 const orderSortOptions = ["created_desc", "amount_desc", "deadline_asc", "profit_desc"] as const;
 
 export function OrderManagementPanel({
   list,
-  writers
+  writers,
+  serviceTypeFilterOptions
 }: {
   list: PaginatedResult<Order>;
   writers: Writer[];
+  serviceTypeFilterOptions: string[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -53,6 +56,8 @@ export function OrderManagementPanel({
   const status = getEnumParam(searchParams, "orderStatus", statusOptions, "all");
   const sourceType = getEnumParam(searchParams, "orderSourceType", sourceOptions, "all");
   const urgency = getEnumParam(searchParams, "orderUrgency", urgencyOptions, "all");
+  const settledState = getEnumParam(searchParams, "orderSettledState", settledOptions, "all");
+  const serviceType = getStringParam(searchParams, "orderServiceType", "all");
   const sort = getEnumParam(searchParams, "orderSort", orderSortOptions, "created_desc");
   const page = getNumberParam(searchParams, "orderPage", 1);
   const pageSize = getNumberParam(searchParams, "orderPageSize", 10);
@@ -169,6 +174,37 @@ export function OrderManagementPanel({
             <option value="high">high</option>
           </select>
           <select
+            value={settledState}
+            onChange={(event) =>
+              updateParams({
+                orderSettledState: event.target.value === "all" ? null : event.target.value,
+                orderPage: null
+              })
+            }
+            className={inputClassName}
+          >
+            <option value="all">全部结清状态</option>
+            <option value="settled">已结清</option>
+            <option value="unsettled">未结清</option>
+          </select>
+          <select
+            value={serviceType}
+            onChange={(event) =>
+              updateParams({
+                orderServiceType: event.target.value === "all" ? null : event.target.value,
+                orderPage: null
+              })
+            }
+            className={inputClassName}
+          >
+            <option value="all">全部服务类型</option>
+            {serviceTypeFilterOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+          <select
             value={sort}
             onChange={(event) =>
               updateParams({
@@ -194,6 +230,8 @@ export function OrderManagementPanel({
                 orderStatus: null,
                 orderSourceType: null,
                 orderUrgency: null,
+                orderSettledState: null,
+                orderServiceType: null,
                 orderSort: null,
                 clientId: null,
                 writerId: null,

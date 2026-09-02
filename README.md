@@ -68,7 +68,12 @@
 
 ## 历史 Excel 数据
 
-若手头有历史客户或订单表格，需要迁入当前系统使用的格式，可在本地使用仓库中的导入脚本处理（具体输入输出以脚本说明为准）。导入后若数据需清洗或对齐字段，可使用同目录下的修复脚本按说明执行。
+主存储为 `data/thesis.db`。导入会写入 SQLite，并同步刷新 JSON 种子备份（空库首次启动仍可读 JSON）。
+
+```bash
+npm run import:history -- /path/to/workbook.xlsx
+npm run repair:history -- /path/to/workbook.xlsx
+```
 
 ---
 

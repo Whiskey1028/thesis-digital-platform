@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { OrderBoard } from "@/components/orders/order-board";
+import { OrderBoard, type OrderBoardColumn } from "@/components/orders/order-board";
 import { OrderManagementPanel } from "@/components/orders/order-management-panel";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { getBooleanParam, replaceUrlParams } from "@/lib/client-url-state";
@@ -10,13 +10,15 @@ import type { PaginatedResult } from "@/lib/api/pagination";
 import type { Order, Writer } from "@/lib/types";
 
 export function OrderPageSections({
-  boardOrders,
+  boardColumns,
   list,
-  writers
+  writers,
+  serviceTypeFilterOptions
 }: {
-  boardOrders: Order[];
+  boardColumns: OrderBoardColumn[];
   list: PaginatedResult<Order>;
   writers: Writer[];
+  serviceTypeFilterOptions: string[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -37,14 +39,17 @@ export function OrderPageSections({
     <>
       <CollapsibleSection
         title="工单分类泳道"
-        description="泳道展示活跃阶段工单概览；列表区按页加载。"
         open={boardOpen}
         onToggle={setBoardOpen}
       >
-        <OrderBoard orders={boardOrders} />
+        <OrderBoard columns={boardColumns} />
       </CollapsibleSection>
 
-      <OrderManagementPanel list={list} writers={writers} />
+      <OrderManagementPanel
+        list={list}
+        writers={writers}
+        serviceTypeFilterOptions={serviceTypeFilterOptions}
+      />
     </>
   );
 }

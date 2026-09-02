@@ -8,6 +8,7 @@ import type {
 } from "@/lib/api/pagination";
 import {
   sqliteQueryClients,
+  sqliteQueryOrderBoard,
   sqliteQueryOrderBoardItems,
   sqliteQueryOrders,
   sqliteQueryWriters,
@@ -33,6 +34,10 @@ export async function queryWriters(
   query: WriterListQuery = {}
 ): Promise<Writer[] | PaginatedResult<Writer>> {
   return sqliteQueryWriters(query);
+}
+
+export async function queryOrderBoard() {
+  return sqliteQueryOrderBoard();
 }
 
 export async function queryOrderBoardItems() {

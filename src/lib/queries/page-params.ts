@@ -8,6 +8,7 @@ import {
   type OrderListQuery,
   type WriterListQuery
 } from "@/lib/api/pagination";
+import { overviewFilterSchema } from "@/lib/queries/overview";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -61,6 +62,8 @@ export function parseOrderPageQuery(searchParams: SearchParams): OrderListQuery 
     status: raw.orderStatus ?? raw.orderListStatus,
     sourceType: raw.orderSourceType ?? raw.orderListSourceType,
     urgency: raw.orderUrgency,
+    settledState: raw.orderSettledState,
+    serviceType: raw.orderServiceType,
     clientId: raw.clientId,
     writerId: raw.writerId,
     sort: mapOrderSort(raw.orderSort ?? raw.orderQuickSort ?? raw.orderListSort),
@@ -81,5 +84,21 @@ export function parseWriterPageQuery(searchParams: SearchParams): WriterListQuer
     sort,
     page: raw.writerPage ?? "1",
     pageSize: raw.writerPageSize ?? "8"
+  });
+}
+
+export function parseOverviewPageQuery(searchParams: SearchParams) {
+  const raw = toParamRecord(searchParams);
+
+  return overviewFilterSchema.parse({
+    sourceType: raw.overviewSourceType,
+    clientSource: raw.overviewClientSource,
+    riskLevel: raw.overviewRiskLevel,
+    serviceType: raw.overviewServiceType,
+    educationLevel: raw.overviewEducationLevel,
+    schoolType: raw.overviewSchoolType,
+    settledState: raw.overviewSettledState,
+    dateFrom: raw.overviewDateFrom,
+    dateTo: raw.overviewDateTo
   });
 }

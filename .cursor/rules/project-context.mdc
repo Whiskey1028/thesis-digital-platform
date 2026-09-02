@@ -15,7 +15,7 @@ alwaysApply: true
 | 语言 | TypeScript（strict） |
 | 样式 | Tailwind CSS 3 + 自定义 glass UI |
 | 校验 | Zod（`src/lib/validation.ts`） |
-| 存储 | 本地 JSON 文件（`data/*.json`，gitignore） |
+| 存储 | SQLite（`data/thesis.db`）；`data/*.json` 仅作空库种子 |
 | 导出 | xlsx |
 
 ## 目录速查
@@ -26,17 +26,17 @@ alwaysApply: true
 | `src/app/api/` | REST Route Handlers（CRUD + Excel 导出） |
 | `src/components/` | 按业务域划分的 UI 组件 |
 | `src/lib/types.ts` | 领域模型（Client / Order / Writer） |
-| `src/lib/repositories/` | Repository 接口 + JSON 实现 |
-| `src/lib/server/` | 服务端工具（storage、Excel、order-drafts） |
-| `src/lib/analytics.ts` | 总览页纯函数聚合 |
-| `scripts/` | 历史 Excel 导入/修复脚本 |
-| `data/` | 运行时 JSON 数据（首次启动从 mock-data 种子初始化） |
+| `src/lib/repositories/` | Repository 接口 + SQLite 实现 |
+| `src/lib/server/` | 服务端工具（sqlite、Excel、order-drafts） |
+| `src/lib/analytics.ts` | 总览纯函数聚合（可被 SQL 聚合替代） |
+| `scripts/` | 历史 Excel 导入/修复（写入 SQLite） |
+| `data/` | `thesis.db` 运行时库；JSON 仅种子 |
 
 ## 业务铁律
 
 1. **先建客户，再开工单** — 工单只能从客户上下文创建（`POST /api/clients/[id]/create-order`），`POST /api/orders` 返回 405。
 2. **写手独立维护** — 写手池与客户档案解耦，派单时在工单里关联。
-3. **Repository 是唯一数据入口** — 页面（RSC）与 API 均通过 `src/lib/repositories/index.ts` 访问数据，禁止绕过 repository 直接读写 JSON。
+3. **Repository 是唯一数据入口** — 页面（RSC）与 API 均通过 `src/lib/repositories/index.ts` 访问数据；导入脚本经 `replaceSqliteDataset` 写库，禁止绕过直接改运行时 JSON 当主存储。
 
 ## 调查代码的默认顺序
 

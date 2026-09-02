@@ -210,6 +210,16 @@ function seedDatabase(db: Database.Database, clients: Client[], writers: Writer[
   db.pragma("foreign_keys = ON");
 }
 
+function clearAllTables(db: Database.Database) {
+  db.pragma("foreign_keys = OFF");
+  db.exec(`
+    DELETE FROM orders;
+    DELETE FROM clients;
+    DELETE FROM writers;
+  `);
+  db.pragma("foreign_keys = ON");
+}
+
 async function migrateFromLegacyJson(db: Database.Database) {
   await withMigrationLock(async () => {
     const clientCount = db.prepare("SELECT COUNT(*) AS count FROM clients").get() as { count: number };
@@ -224,6 +234,20 @@ async function migrateFromLegacyJson(db: Database.Database) {
     ]);
 
     seedDatabase(db, clients, writers, orders);
+  });
+}
+
+/** 全量替换业务数据（导入/修复脚本用）。会清空三表后重写。 */
+export async function replaceSqliteDataset(input: {
+  clients: Client[];
+  writers: Writer[];
+  orders: Order[];
+}) {
+  const db = await ensureSqliteDatabase();
+
+  await withMigrationLock(() => {
+    clearAllTables(db);
+    seedDatabase(db, input.clients, input.writers, input.orders);
   });
 }
 

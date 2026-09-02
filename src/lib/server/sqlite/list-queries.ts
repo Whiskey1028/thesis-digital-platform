@@ -120,6 +120,17 @@ function buildOrderWhere(query: OrderListQuery) {
     params.push(query.urgency);
   }
 
+  if (query.settledState === "settled") {
+    conditions.push("o.is_settled = 1");
+  } else if (query.settledState === "unsettled") {
+    conditions.push("o.is_settled = 0");
+  }
+
+  if (query.serviceType && query.serviceType !== "all") {
+    conditions.push("o.service_type = ?");
+    params.push(query.serviceType);
+  }
+
   if (query.clientId) {
     conditions.push("o.client_id = ?");
     params.push(query.clientId);
@@ -308,15 +319,54 @@ export async function sqliteQueryWriters(
   };
 }
 
-export async function sqliteQueryOrderBoardItems(): Promise<Order[]> {
+export async function sqliteQueryOrderBoard(): Promise<
+  Array<{ status: string; count: number; items: Order[] }>
+> {
   const database = await db();
-  const rows = database
-    .prepare(`
-      SELECT o.*
-      FROM orders o
-      WHERE o.status IN ('lead', 'quoted', 'in_progress', 'review', 'delivered', 'after_sales')
-      ORDER BY o.deadline ASC
-    `)
-    .all() as OrderRow[];
-  return rows.map(mapOrderRow);
+  const statuses = ["lead", "quoted", "in_progress", "review", "delivered", "after_sales"];
+
+  const countRows = database
+    .prepare(
+      `
+      SELECT status, COUNT(*) AS count
+      FROM orders
+      GROUP BY status
+    `
+    )
+    .all() as Array<{ status: string; count: number }>;
+  const countMap = new Map(countRows.map((row) => [row.status, row.count]));
+
+  const sampleRows = database
+    .prepare(
+      `
+      SELECT *
+      FROM (
+        SELECT o.*,
+          ROW_NUMBER() OVER (PARTITION BY o.status ORDER BY o.deadline ASC, o.created_at DESC) AS rn
+        FROM orders o
+      )
+      WHERE rn <= 8
+      ORDER BY status, rn
+    `
+    )
+    .all() as Array<OrderRow & { rn: number }>;
+
+  const samplesByStatus = new Map<string, Order[]>();
+  for (const row of sampleRows) {
+    const list = samplesByStatus.get(row.status) ?? [];
+    list.push(mapOrderRow(row));
+    samplesByStatus.set(row.status, list);
+  }
+
+  return statuses.map((status) => ({
+    status,
+    count: countMap.get(status) ?? 0,
+    items: samplesByStatus.get(status) ?? []
+  }));
+}
+
+/** @deprecated use sqliteQueryOrderBoard */
+export async function sqliteQueryOrderBoardItems(): Promise<Order[]> {
+  const columns = await sqliteQueryOrderBoard();
+  return columns.flatMap((column) => column.items);
 }

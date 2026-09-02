@@ -1,195 +1,21 @@
-import fs from "node:fs/promises";
+#!/usr/bin/env node
+/**
+ * @deprecated Use `npm run import:history` (scripts/import-history.ts).
+ * Kept so older docs/commands still work.
+ */
+import { spawnSync } from "node:child_process";
 import path from "node:path";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+import { fileURLToPath } from "node:url";
 
-const execFileAsync = promisify(execFile);
-
-const root = process.cwd();
-const rawDir = path.join(root, "raw");
-const dataDir = path.join(root, "data");
-const scriptsDir = path.join(root, "scripts");
-const pythonPath = process.env.PYTHON ?? "python";
-const extractorScriptPath = path.join(scriptsDir, "extract-xlsx.py");
-
-function normalizeDate(value) {
-  if (!value) return "";
-  if (/^\\d{4}-\\d{2}-\\d{2}$/.test(String(value))) return String(value);
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return String(value);
-  const excelEpoch = new Date(Date.UTC(1899, 11, 30));
-  const normalized = new Date(excelEpoch.getTime() + numeric * 24 * 60 * 60 * 1000);
-  return normalized.toISOString().slice(0, 10);
-}
-
-function makeClientId(index) {
-  return `hist_cli_${index.toString().padStart(4, "0")}`;
-}
-
-function makeOrderId(index) {
-  return `hist_ord_${index.toString().padStart(4, "0")}`;
-}
-
-function resolveOrderAmount(row, sourceType) {
-  if (sourceType === "self_owned") {
-    const totalPrice = Number(row["M"] ?? 0);
-    const income = Number(row["H"] ?? 0);
-    return totalPrice > 0 ? totalPrice : income;
+const root = path.dirname(fileURLToPath(import.meta.url));
+const result = spawnSync(
+  "npx",
+  ["tsx", "-r", "./scripts/stub-server-only.cjs", "scripts/import-history.ts", ...process.argv.slice(2)],
+  {
+    cwd: path.join(root, ".."),
+    stdio: "inherit",
+    shell: process.platform === "win32"
   }
-  return Number(row["G"] ?? 0);
-}
+);
 
-function buildOrder(row, index, sourceType) {
-  const amount = resolveOrderAmount(row, sourceType);
-  const settledAmount = Number(row[sourceType === "self_owned" ? "N" : "M"] ?? 0);
-  const receivableAmount = Number(
-    row[sourceType === "self_owned" ? "O" : "Q"] ?? Math.max(amount - settledAmount, 0)
-  );
-  const costAmount = sourceType === "outsourced" ? Number(row["N"] ?? 0) : 0;
-  const profitAmount =
-    sourceType === "outsourced"
-      ? Number(row["P"] ?? amount - costAmount)
-      : amount - costAmount;
-  const clientId = makeClientId(index);
-
-  return {
-    id: makeOrderId(index),
-    clientId,
-    clientName: `历史客户${index}`,
-    sourceType,
-    title: String(row[sourceType === "self_owned" ? "F" : "E"] ?? "未知"),
-    schoolType: sourceType === "self_owned" ? String(row["B"] ?? "未知") : "未知",
-    school: String(row[sourceType === "self_owned" ? "E" : "D"] ?? "未知"),
-    educationLevel: String(row[sourceType === "self_owned" ? "C" : "B"] ?? "其他"),
-    major: String(row[sourceType === "self_owned" ? "D" : "C"] ?? "未知"),
-    serviceType: sourceType === "self_owned" ? String(row["G"] ?? "论文服务") : String(row["F"] ?? "论文服务"),
-    packageMode: sourceType === "self_owned" ? String(row["G"] ?? "论文服务") : String(row["F"] ?? "通道费"),
-    writerId: null,
-    ownerName: String(row["O"] ?? (sourceType === "self_owned" ? "自营" : "外包负责人")),
-    status: settledAmount >= amount && amount > 0 ? "delivered" : "review",
-    deadline: normalizeDate(row[sourceType === "self_owned" ? "J" : "I"]),
-    writerDeadline: normalizeDate(row["J"]),
-    completedAt: normalizeDate(row["K"]),
-    transactionDate: normalizeDate(row[sourceType === "self_owned" ? "I" : "H"]),
-    amount,
-    settledAmount,
-    receivableAmount,
-    costAmount,
-    profitAmount,
-    paymentStatus: settledAmount >= amount && amount > 0 ? "paid" : settledAmount > 0 ? "partial" : "pending",
-    isSettled: String(row["L"] ?? "") === "是",
-    urgency: "medium",
-    sourceChannel: sourceType === "self_owned" ? "历史自接台账" : "历史转包台账",
-    notes: String(row["P"] ?? row["R"] ?? ""),
-    remark: String(row["Q"] ?? ""),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
-}
-
-function buildClient(order) {
-  return {
-    id: order.clientId,
-    name: order.clientName,
-    contactHandle: order.clientId.replace("hist_cli_", "history-"),
-    sourceChannel: order.sourceChannel,
-    schoolType: order.schoolType,
-    school: order.school,
-    educationLevel: order.educationLevel,
-    major: order.major,
-    riskLevel: "medium",
-    preferredTitle: order.title,
-    preferredServiceType: order.serviceType,
-    preferredDeadline: order.deadline,
-    preferredBudget: order.amount,
-    notes: order.notes,
-    lastContactAt: new Date().toISOString(),
-    createdAt: new Date().toISOString()
-  };
-}
-
-const workbookPath = process.argv[2]
-  ? path.resolve(process.argv[2])
-  : path.join(rawDir, "fada❤whi (2).xlsx");
-
-const seedWriters = [
-  {
-    id: "wri_001",
-    name: "顾言",
-    specialties: ["教育学", "心理学"],
-    availability: "busy",
-    capacity: 6,
-    activeOrderCount: 5,
-    rating: 4.8,
-    completionRate: 0.96,
-    averageTurnaroundDays: 4.5,
-    priceTier: "premium",
-    ownerName: "自营",
-    settlementMode: "固定稿费",
-    notes: "适合教育学与定量分析类订单。"
-  },
-  {
-    id: "wri_002",
-    name: "秦放",
-    specialties: ["新闻传播学", "市场营销"],
-    availability: "available",
-    capacity: 5,
-    activeOrderCount: 2,
-    rating: 4.6,
-    completionRate: 0.92,
-    averageTurnaroundDays: 5.2,
-    priceTier: "advanced",
-    ownerName: "小樊",
-    settlementMode: "通道费",
-    notes: "适合转包与修改类稿件。"
-  },
-  {
-    id: "wri_003",
-    name: "陆哲",
-    specialties: ["法学", "公共管理"],
-    availability: "available",
-    capacity: 4,
-    activeOrderCount: 1,
-    rating: 4.9,
-    completionRate: 0.98,
-    averageTurnaroundDays: 3.9,
-    priceTier: "premium",
-    ownerName: "自营",
-    settlementMode: "固定稿费",
-    notes: "适合高客单价法学项目。"
-  }
-];
-const extractedPath = path.join(dataDir, ".workbook-extracted.json");
-
-await fs.mkdir(dataDir, { recursive: true });
-await execFileAsync(pythonPath, [extractorScriptPath, workbookPath, extractedPath], {
-  maxBuffer: 20 * 1024 * 1024
-});
-
-const workbook = JSON.parse(await fs.readFile(extractedPath, "utf-8"));
-await fs.unlink(extractedPath).catch(() => {});
-const selfRows = (workbook["第一桶金100w（自接）"] ?? []).slice(1).filter((row) => row["F"]);
-const outsourcedRows = (workbook["第一桶金100w（转包）"] ?? []).slice(1).filter((row) => row["E"]);
-
-const importedOrders = [
-  ...selfRows.map((row, index) => buildOrder(row, index + 100, "self_owned")),
-  ...outsourcedRows.map((row, index) => buildOrder(row, index + 1000, "outsourced"))
-];
-
-const importedClients = importedOrders.map((order) => buildClient(order));
-
-const runtimeFiles = {
-  "imported-orders.json": importedOrders,
-  "imported-clients.json": importedClients,
-  "orders.json": importedOrders,
-  "clients.json": importedClients,
-  "writers.json": seedWriters
-};
-
-for (const [filename, payload] of Object.entries(runtimeFiles)) {
-  await fs.writeFile(path.join(dataDir, filename), JSON.stringify(payload, null, 2), "utf-8");
-}
-
-console.log(`Source: ${workbookPath}`);
-console.log(`Imported ${importedOrders.length} orders and ${importedClients.length} clients.`);
-console.log(`Wrote runtime data to ${dataDir} (clients.json, orders.json, writers.json).`);
+process.exit(result.status ?? 1);

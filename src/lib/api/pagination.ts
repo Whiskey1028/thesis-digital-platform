@@ -35,6 +35,8 @@ export const orderListQuerySchema = paginationBaseSchema.extend({
     .optional(),
   sourceType: z.enum(["all", "self_owned", "outsourced"]).optional(),
   urgency: z.enum(["all", "low", "medium", "high"]).optional(),
+  settledState: z.enum(["all", "settled", "unsettled"]).optional(),
+  serviceType: z.string().optional(),
   clientId: z.string().optional(),
   writerId: z.string().optional(),
   sort: z

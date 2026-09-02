@@ -24,7 +24,9 @@
 | 问题 | 状态 | 说明 |
 |------|------|------|
 | 管理页全量加载 | **已修复** | RSC + URL 分页，SQL `LIMIT/OFFSET` |
-| 总览页全量加载 | 保留 | 本期仍全量供 analytics；可改 SQL 聚合 |
+| 总览页全量加载 | **已修复** | URL 筛选 + SQL 聚合（`src/lib/queries/overview.ts`） |
+| 导入只写 JSON | **已修复** | `import:history` / `repair:history` → `replaceSqliteDataset` |
+| 工单泳道全量 | **已优化** | 每状态计数 + 最多 8 条样例 |
 | Excel 导出全量 | 待办 | 流式或分批 |
 
 ## P3 · 工程质量

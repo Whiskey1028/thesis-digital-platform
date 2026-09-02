@@ -10,7 +10,8 @@
     "lint:fix": "eslint src --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
-    "import:history": "node scripts/import-history.mjs",
+    "import:history": "tsx -r ./scripts/stub-server-only.cjs scripts/import-history.ts",
+    "repair:history": "tsx -r ./scripts/stub-server-only.cjs scripts/repair-history-data.ts",
     "cli": "tsx -r ./scripts/stub-server-only.cjs scripts/thesis-cli.ts",
     "mcp:thesis": "tsx -r ./scripts/stub-server-only.cjs mcp/thesis-platform/index.ts"
   },
