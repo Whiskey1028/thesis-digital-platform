@@ -101,7 +101,12 @@ npm run mcp:thesis   # MCP stdio server（Cursor `.cursor/mcp.json`）
 
 ## 演进方向
 
-1. RSC 页 KPI 改为轻量聚合；管理列表改走分页 API
-2. Repository 换 SQLite（接口不变）
-3. 关键路径单元测试：`domain/`、`api/services/`、`validation.ts`
-4. Agent Phase 3：本地 token + audit log
+1. 总览页改为 SQL 聚合 KPI（列表已分页）
+2. 关键路径单元测试：`domain/`、`api/services/`、`validation.ts`
+3. Agent Phase 3：本地 token + audit log（暂不做）
+
+## 存储
+
+- **主存储**：`data/thesis.db`（SQLite + WAL，`better-sqlite3`）
+- **首次启动**：空库时从 `data/*.json` 一次性导入（文件锁防并发重复种子）
+- **JSON 文件**：只读种子，运行期不再双写

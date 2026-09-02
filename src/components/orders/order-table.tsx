@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { StatusPill } from "@/components/ui/status-pill";
-import type { Client, Order, Writer } from "@/lib/types";
+import type { Order, Writer } from "@/lib/types";
 
 function statusTone(status: Order["status"]) {
   switch (status) {
@@ -27,13 +27,11 @@ function sourceTypeLabel(sourceType: Order["sourceType"]) {
 export function OrderTable({
   orders,
   writers,
-  clients,
   onViewOrder,
   onEditOrder
 }: {
   orders: Order[];
   writers: Writer[];
-  clients: Client[];
   onViewOrder?: (order: Order) => void;
   onEditOrder?: (order: Order) => void;
 }) {
@@ -57,7 +55,6 @@ export function OrderTable({
         <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
           {orders.map((order) => {
             const writer = writers.find((item) => item.id === order.writerId);
-            const client = clients.find((item) => item.id === order.clientId);
 
             return (
               <tr key={order.id}>
@@ -65,17 +62,17 @@ export function OrderTable({
                   <div className="font-medium text-slate-900">{order.title}</div>
                   <div className="mt-1 text-xs text-slate-500">
                     <Link href={`/clients?clientId=${order.clientId}`} className="hover:text-slate-700 hover:underline">
-                      {client?.name ?? "未命名客户"}
+                      {order.clientName ?? "未命名客户"}
                     </Link>
                     {" / "}
-                    {client?.major ?? "-"}
+                    {order.major ?? "-"}
                   </div>
                 </td>
                 <td className="px-5 py-4">{sourceTypeLabel(order.sourceType)}</td>
                 <td className="px-5 py-4">
-                  <div>{client?.schoolType ?? "-"}</div>
+                  <div>{order.schoolType ?? "-"}</div>
                   <div className="mt-1 text-xs text-slate-500">
-                    {client?.educationLevel ?? "-"} / {client?.school ?? "-"}
+                    {order.educationLevel ?? "-"} / {order.school ?? "-"}
                   </div>
                 </td>
                 <td className="px-5 py-4">

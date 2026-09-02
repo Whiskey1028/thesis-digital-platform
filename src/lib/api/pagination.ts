@@ -14,6 +14,7 @@ export const paginationBaseSchema = z.object({
 });
 
 export const clientListQuerySchema = paginationBaseSchema.extend({
+  id: z.string().optional(),
   risk: z.enum(["all", "low", "medium", "high"]).optional(),
   sort: z
     .enum(["name_asc", "name_desc", "created_desc", "budget_desc"])
@@ -36,10 +37,13 @@ export const orderListQuerySchema = paginationBaseSchema.extend({
   urgency: z.enum(["all", "low", "medium", "high"]).optional(),
   clientId: z.string().optional(),
   writerId: z.string().optional(),
-  sort: z.enum(["deadline_asc", "deadline_desc", "amount_desc", "created_desc"]).optional()
+  sort: z
+    .enum(["deadline_asc", "deadline_desc", "amount_desc", "created_desc", "profit_desc"])
+    .optional()
 });
 
 export const writerListQuerySchema = paginationBaseSchema.extend({
+  id: z.string().optional(),
   availability: z.enum(["all", "available", "busy", "offline"]).optional(),
   sort: z.enum(["name_asc", "rating_desc", "load_desc", "capacity_desc"]).optional()
 });

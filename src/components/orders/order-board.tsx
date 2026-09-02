@@ -1,6 +1,6 @@
 import { GlassCard } from "@/components/ui/glass-card";
 import { StatusPill } from "@/components/ui/status-pill";
-import type { Client, Order, OrderStatus } from "@/lib/types";
+import type { Order, OrderStatus } from "@/lib/types";
 
 const columns: OrderStatus[] = ["lead", "quoted", "in_progress", "review", "delivered", "after_sales"];
 
@@ -13,7 +13,7 @@ const toneMap = {
   after_sales: "red"
 } as const;
 
-export function OrderBoard({ orders, clients }: { orders: Order[]; clients: Client[] }) {
+export function OrderBoard({ orders }: { orders: Order[] }) {
   return (
     <div className="grid gap-4 xl:grid-cols-3 2xl:grid-cols-6">
       {columns.map((column) => {
@@ -33,9 +33,7 @@ export function OrderBoard({ orders, clients }: { orders: Order[]; clients: Clie
                 scoped.map((order) => (
                   <article key={order.id} className="rounded-[22px] bg-white/90 p-4 shadow-soft">
                     <p className="text-sm font-medium text-slate-900">{order.title}</p>
-                    <p className="mt-2 text-xs text-slate-500">
-                      {clients.find((client) => client.id === order.clientId)?.name ?? "未命名客户"}
-                    </p>
+                    <p className="mt-2 text-xs text-slate-500">{order.clientName ?? "未命名客户"}</p>
                     <p className="mt-3 text-xs text-slate-400">截止 {order.deadline}</p>
                   </article>
                 ))

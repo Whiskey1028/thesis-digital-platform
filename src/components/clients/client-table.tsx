@@ -4,9 +4,10 @@ import Link from "next/link";
 import { ClientOrderDialog } from "@/components/clients/client-order-dialog";
 import { StatusPill } from "@/components/ui/status-pill";
 import { createOrderDraftFromClient } from "@/lib/server/order-drafts";
-import type { Client, Order, Writer } from "@/lib/types";
+import type { ClientListItem } from "@/lib/api/list-queries";
+import type { Writer } from "@/lib/types";
 
-function riskTone(risk: Client["riskLevel"]) {
+function riskTone(risk: ClientListItem["riskLevel"]) {
   switch (risk) {
     case "high":
       return "red";
@@ -19,23 +20,18 @@ function riskTone(risk: Client["riskLevel"]) {
 
 export function ClientTable({
   clients,
-  orders,
   writers,
   onViewClient,
   onEditClient
 }: {
-  clients: Client[];
-  orders: Order[];
+  clients: ClientListItem[];
   writers: Writer[];
-  onViewClient?: (client: Client) => void;
-  onEditClient?: (client: Client) => void;
+  onViewClient?: (client: ClientListItem) => void;
+  onEditClient?: (client: ClientListItem) => void;
 }) {
   return (
     <div className="space-y-4">
       {clients.map((client) => {
-        const clientOrders = orders.filter((order) => order.clientId === client.id);
-        const orderCount = clientOrders.length;
-        const latestOrder = clientOrders[0];
         const draft = createOrderDraftFromClient(client);
 
         return (
@@ -62,7 +58,7 @@ export function ClientTable({
               <div className="grid gap-3 md:grid-cols-4 xl:w-[720px]">
                 <div className="rounded-[22px] bg-slate-50 p-4">
                   <p className="text-xs text-slate-500">累计工单</p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-950">{orderCount}</p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-950">{client.orderCount}</p>
                 </div>
                 <div className="rounded-[22px] bg-slate-50 p-4">
                   <p className="text-xs text-slate-500">预设预算</p>
@@ -79,7 +75,7 @@ export function ClientTable({
                 <div className="rounded-[22px] bg-slate-50 p-4">
                   <p className="text-xs text-slate-500">最近工单</p>
                   <p className="mt-2 text-sm font-medium text-slate-900">
-                    {latestOrder?.title ?? "尚未生成工单"}
+                    {client.latestOrderTitle ?? "尚未生成工单"}
                   </p>
                 </div>
               </div>

@@ -7,3 +7,8 @@ npm-debug.log*
 docs/
 !docs/ARCHITECTURE.md
 data/
+data/*.db
+data/*.db-*
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
