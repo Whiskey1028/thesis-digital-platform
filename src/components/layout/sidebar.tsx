@@ -46,10 +46,8 @@ export function Sidebar() {
       </nav>
 
       <div className="mt-auto rounded-[28px] bg-white/80 p-4 text-sm text-slate-600">
-        <p className="font-medium text-slate-900">轻量存储策略</p>
-        <p className="mt-2 leading-6">
-          当前使用 JSON 仓储，界面与接口已经预留后续切换 SQLite 的路径。
-        </p>
+        <p className="font-medium text-slate-900">本地 SQLite</p>
+        <p className="mt-2 leading-6">运行时写入 data/thesis.db；JSON 仅作空库种子。</p>
       </div>
     </aside>
   );

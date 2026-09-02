@@ -2,7 +2,7 @@
 name: thesis-platform-dev
 description: >-
   论文数字化平台（Next.js 15 + TypeScript）开发咨询与实现规范：客户/工单/写手 CRUD、
-  总览分析、Repository 层、REST API、Zod 校验、JSON 存储、Excel 导入导出。
+  总览分析、Repository 层、REST API、Zod 校验、SQLite 存储、Excel 导入导出。
   在用户问如何实现某功能、接口在哪、数据模型、业务规则、bug 修复、性能优化时自动启用。
 ---
 
@@ -21,9 +21,10 @@ Skill 根目录：`.cursor/skills/thesis-platform-dev/`。
 详见根目录 [ARCHITECTURE.md](../../../ARCHITECTURE.md)。
 
 ```
-Route Handler  →  lib/api/services  →  repositories  →  data/*.json
-Page (RSC)     →  lib/queries       →  repositories
+Route Handler  →  lib/api/services  →  repositories(SQLite)  →  data/thesis.db
+Page (RSC)     →  lib/queries / list-queries → SQLite
 Client UI      →  lib/client/api-fetch  →  /api/*
+CLI / MCP      →  api/services（tsx + stub-server-only）
 ```
 
 ## 2. 问题类型分流
