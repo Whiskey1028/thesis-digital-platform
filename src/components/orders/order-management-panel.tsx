@@ -11,6 +11,7 @@ import { ModalShell } from "@/components/ui/modal-shell";
 import { ExportExcelButton } from "@/components/ui/export-excel-button";
 import { SearchableSingleSelect, SegmentedSelect } from "@/components/ui/form-controls";
 import { serviceTypeOptions } from "@/lib/constants";
+import { apiFetch, formatApiError } from "@/lib/client/api-fetch";
 import {
   getBooleanParam,
   getEnumParam,
@@ -260,7 +261,9 @@ export function OrderManagementPanel({
     pathname,
     query,
     quickOpen,
+    quickSort,
     router,
+    safeListPage,
     safePage,
     serviceType,
     settledState,
@@ -561,12 +564,14 @@ export function OrderManagementPanel({
                       if (!confirmed) return;
                       startTransition(() => {
                         void (async () => {
-                          const response = await fetch(`/api/orders/${order.id}`, { method: "DELETE" });
-                          if (response.ok) {
+                          const result = await apiFetch(`/api/orders/${order.id}`, {
+                            method: "DELETE"
+                          });
+                          if (result.ok) {
                             setMessage("工单已删除。");
                             router.refresh();
                           } else {
-                            setMessage("工单删除失败。");
+                            setMessage(formatApiError(result.error));
                           }
                         })();
                       });
@@ -776,7 +781,7 @@ export function OrderManagementPanel({
 
                 startTransition(() => {
                   void (async () => {
-                    const response = await fetch(`/api/orders/${selectedOrder.id}`, {
+                    const result = await apiFetch(`/api/orders/${selectedOrder.id}`, {
                       method: "PATCH",
                       headers: {
                         "Content-Type": "application/json"
@@ -784,12 +789,12 @@ export function OrderManagementPanel({
                       body: JSON.stringify(payload)
                     });
 
-                    if (response.ok) {
+                    if (result.ok) {
                       setMessage("工单已更新。");
                       setSelectedOrder(null);
                       router.refresh();
                     } else {
-                      setMessage("工单更新失败。");
+                      setMessage(formatApiError(result.error));
                     }
                   })();
                 });

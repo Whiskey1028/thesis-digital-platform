@@ -1,9 +1,17 @@
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { FlatCompat } from "@eslint/eslintrc";
 import eslint from "@eslint/js";
 import prettierConfig from "eslint-config-prettier";
 import tseslint from "typescript-eslint";
 
+const compat = new FlatCompat({
+  baseDirectory: dirname(fileURLToPath(import.meta.url))
+});
+
 export default tseslint.config(
   eslint.configs.recommended,
+  ...compat.extends("next/core-web-vitals", "next/typescript"),
   ...tseslint.configs.recommendedTypeChecked,
   prettierConfig,
   {
@@ -31,6 +39,6 @@ export default tseslint.config(
     }
   },
   {
-    ignores: [".next/", "node_modules/", "data/", "scripts/", ".codex-tmp/"]
+    ignores: [".next/", "node_modules/", "data/", "scripts/", "mcp/", ".codex-tmp/"]
   }
 );

@@ -1,7 +1,9 @@
+import "server-only";
+
 import { mockWriters } from "@/lib/mock-data";
 import type { Writer } from "@/lib/types";
 import type { WriterRepository } from "@/lib/repositories/interfaces";
-import { readJsonFile, writeJsonFile } from "@/lib/server/storage";
+import { mutateJsonFile, readJsonFile } from "@/lib/server/storage";
 
 const filename = "writers.json";
 
@@ -14,37 +16,41 @@ export const jsonWriterRepository: WriterRepository = {
     return writers.find((item) => item.id === id) ?? null;
   },
   async create(input) {
-    const writers = await readJsonFile<Writer[]>(filename, mockWriters);
-    writers.unshift(input);
-    await writeJsonFile(filename, writers);
+    await mutateJsonFile<Writer[]>(filename, mockWriters, (writers) => {
+      writers.unshift(input);
+      return writers;
+    });
     return input;
   },
   async update(id, input) {
-    const writers = await readJsonFile<Writer[]>(filename, mockWriters);
-    const index = writers.findIndex((item) => item.id === id);
+    let updated: Writer | null = null;
 
-    if (index === -1) {
-      return null;
-    }
+    await mutateJsonFile<Writer[]>(filename, mockWriters, (writers) => {
+      const index = writers.findIndex((item) => item.id === id);
 
-    const updated = {
-      ...writers[index],
-      ...input
-    };
+      if (index === -1) {
+        return writers;
+      }
 
-    writers[index] = updated;
-    await writeJsonFile(filename, writers);
+      updated = {
+        ...writers[index],
+        ...input
+      };
+      writers[index] = updated;
+      return writers;
+    });
+
     return updated;
   },
   async remove(id) {
-    const writers = await readJsonFile<Writer[]>(filename, mockWriters);
-    const nextWriters = writers.filter((item) => item.id !== id);
+    let removed = false;
 
-    if (nextWriters.length === writers.length) {
-      return false;
-    }
+    await mutateJsonFile<Writer[]>(filename, mockWriters, (writers) => {
+      const nextWriters = writers.filter((item) => item.id !== id);
+      removed = nextWriters.length !== writers.length;
+      return nextWriters;
+    });
 
-    await writeJsonFile(filename, nextWriters);
-    return true;
+    return removed;
   }
 };

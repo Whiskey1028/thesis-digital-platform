@@ -460,18 +460,18 @@ export function WriterManagementPanel({ writers }: { writers: Writer[] }) {
 
                 startTransition(() => {
                   void (async () => {
-                    const response = await fetch(`/api/writers/${editingWriter.id}`, {
+                    const result = await apiFetch(`/api/writers/${editingWriter.id}`, {
                       method: "PATCH",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify(payload)
                     });
 
-                    if (response.ok) {
+                    if (result.ok) {
                       setMessage("写手已更新。");
                       setEditingWriter(null);
                       router.refresh();
                     } else {
-                      setMessage("写手更新失败。");
+                      setMessage(formatApiError(result.error));
                     }
                   })();
                 });

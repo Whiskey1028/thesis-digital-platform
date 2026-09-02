@@ -1,14 +1,16 @@
 import "server-only";
 
-import { createEntityId } from "@/lib/api/ids";
 import { ApiError } from "@/lib/api/errors";
+import { createEntityId } from "@/lib/api/ids";
+import { queryOrders } from "@/lib/api/list-queries";
+import type { OrderListQuery } from "@/lib/api/pagination";
 import { createOrderDraftFromClient } from "@/lib/server/order-drafts";
 import { repositories } from "@/lib/repositories";
 import type { Order } from "@/lib/types";
 import type { CreateOrderFromClientInput, UpdateOrderInput } from "@/lib/validation";
 
-export async function listOrders() {
-  return repositories.orders.list();
+export async function listOrders(query: OrderListQuery = {}) {
+  return queryOrders(query);
 }
 
 export async function getOrderById(id: string) {

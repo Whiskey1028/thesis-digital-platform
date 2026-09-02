@@ -13,31 +13,32 @@
 
 ## P1 · 并发与存储
 
-| 问题 | 位置 | 根因 | 建议修复 |
-|------|------|------|----------|
-| JSON 读写竞态 | `src/lib/repositories/json/*.ts` | read-modify-write 无锁 | 文件锁或迁 SQLite |
-| ID 碰撞 | `createEntityId()` | **已修复** | 时间戳 + 随机后缀 |
-| 每次操作读全文件 | storage + repository | 无缓存 | 进程内 cache + 写时 flush |
+| 问题 | 状态 | 说明 |
+|------|------|------|
+| JSON 读写竞态 | **已修复** | `proper-lockfile` + `mutateJsonFile` |
+| ID 碰撞 | **已修复** | `createEntityId` 时间戳 + 随机后缀 |
+| 每次操作读全文件 | **已修复** | 进程内 cache（mtime 失效） |
 
 ## P2 · 性能
 
-| 问题 | 位置 | 影响 | 建议修复 |
-|------|------|------|----------|
-| 页面加载全量三表 | `(dashboard)/*/page.tsx` | 数据量大时慢 | 分页 API + 按需加载 |
-| 客户端 filter | `*-management-panel.tsx` | 大数组 useMemo | 服务端 query + 分页 |
-| Excel 导出全量 | `src/app/api/export/*` | 内存峰值 | 流式或分批 |
-| GET 被 Next 缓存 | `src/app/api/*` | 默认 cache | ✅ `app/api/layout.ts` force-dynamic |
+| 问题 | 状态 | 说明 |
+|------|------|------|
+| 列表无服务端分页 | **已修复（API）** | `?page=&pageSize=&q=` + `list-queries`；RSC 页仍全量加载供 KPI |
+| 客户端 filter | 部分保留 | 管理面板仍本地筛选；大列表可改走分页 API |
+| Excel 导出全量 | 待办 | 流式或分批 |
+| GET 被 Next 缓存 | **已修复** | `app/api/layout.tsx` `force-dynamic` |
 
 ## P3 · 工程质量
 
-- 无自动化测试
-- 无 `middleware.ts`
-- `replaceUrlParams` 与 Next `searchParams` 可能 hydration 不同步
+| 问题 | 状态 | 说明 |
+|------|------|------|
+| ESLint / Next 插件 | **已修复** | ESLint 9 + `eslint-config-next`（FlatCompat） |
+| 前端 fetch 不一致 | **已修复** | CRUD 走 `apiFetch`；导出仍用 blob `fetch` |
+| 无自动化测试 | 待办 | 优先测 `domain/` 与 `api/services/` |
+| `replaceUrlParams` hydration | 待办 | 与 Next `searchParams` 对齐 |
 
-## 下一期优化优先级（建议）
+## 下一期优化优先级
 
-1. **Referential integrity** — 删改前的关联检查（最小 diff、最大减 bug）
-2. **Writer load 派生** — 消除 `activeOrderCount` 漂移
-3. **Repository 缓存 + 文件锁** — 低成本提升并发安全与读性能
-4. **服务端分页** — 为规模增长做准备
-5. **SQLite 迁移** — repository 接口已抽象，可换底层实现
+1. RSC 页 KPI 改为轻量聚合 API，列表区改分页拉取
+2. SQLite 替换 JSON（repository 接口已抽象）
+3. 单元测试 + audit log / 本地 token（Agent CRUD Phase 3）

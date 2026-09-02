@@ -474,18 +474,18 @@ export function ClientManagementPanel({
 
                 startTransition(() => {
                   void (async () => {
-                    const response = await fetch(`/api/clients/${editingClient.id}`, {
+                    const result = await apiFetch(`/api/clients/${editingClient.id}`, {
                       method: "PATCH",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify(payload)
                     });
 
-                    if (response.ok) {
+                    if (result.ok) {
                       setMessage("客户已更新。");
                       setEditingClient(null);
                       router.refresh();
                     } else {
-                      setMessage("客户更新失败。");
+                      setMessage(formatApiError(result.error));
                     }
                   })();
                 });

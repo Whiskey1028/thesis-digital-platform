@@ -54,6 +54,15 @@ export async function apiFetch<T>(url: string, init?: RequestInit): Promise<ApiR
     return { ok: true, data: body.data as T };
   }
 
+  if (
+    typeof body === "object" &&
+    body !== null &&
+    "ok" in body &&
+    (body as { ok?: boolean }).ok === true
+  ) {
+    return { ok: true, data: body as T };
+  }
+
   return { ok: true, data: body as T };
 }
 

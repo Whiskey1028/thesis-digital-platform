@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FieldRow } from "@/components/ui/field-row";
 import { SearchableSingleSelect, SegmentedSelect } from "@/components/ui/form-controls";
 import { priceTierOptions, writerAvailabilityOptions } from "@/lib/constants";
+import { apiFetch, formatApiError } from "@/lib/client/api-fetch";
 
 const inputClassName = "w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm";
 
@@ -44,7 +45,7 @@ export function WriterCreateForm() {
 
         startTransition(() => {
           void (async () => {
-            const response = await fetch("/api/writers", {
+            const result = await apiFetch("/api/writers", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json"
@@ -52,7 +53,7 @@ export function WriterCreateForm() {
               body: JSON.stringify(payload)
             });
 
-            if (response.ok) {
+            if (result.ok) {
               setMessage("写手已新增，列表已刷新。");
               formElement.reset();
               setAvailability("available");
@@ -60,7 +61,7 @@ export function WriterCreateForm() {
               setSettlementMode("按单结算");
               router.refresh();
             } else {
-              setMessage("写手创建失败，请检查表单字段。");
+              setMessage(formatApiError(result.error));
             }
           })();
         });

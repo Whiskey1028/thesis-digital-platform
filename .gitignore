@@ -5,4 +5,5 @@ npm-debug.log*
 .next-cache-broken-*
 .next-cache-restart-*
 docs/
+!docs/ARCHITECTURE.md
 data/

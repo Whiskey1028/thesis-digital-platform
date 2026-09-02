@@ -10,6 +10,7 @@ import {
   schoolTypeOptions,
   serviceTypeOptions
 } from "@/lib/constants";
+import { apiFetch, formatApiError } from "@/lib/client/api-fetch";
 
 const inputClassName = "w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm";
 
@@ -55,7 +56,7 @@ export function ClientCreateForm() {
 
         startTransition(() => {
           void (async () => {
-            const response = await fetch("/api/clients", {
+            const result = await apiFetch("/api/clients", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json"
@@ -63,7 +64,7 @@ export function ClientCreateForm() {
               body: JSON.stringify(payload)
             });
 
-            if (response.ok) {
+            if (result.ok) {
               setMessage("客户已创建，列表已刷新。");
               formElement.reset();
               setEducationLevel("本科");
@@ -73,7 +74,7 @@ export function ClientCreateForm() {
               setSourceChannel("自然咨询");
               router.refresh();
             } else {
-              setMessage("客户创建失败，请检查必填字段。");
+              setMessage(formatApiError(result.error));
             }
           })();
         });

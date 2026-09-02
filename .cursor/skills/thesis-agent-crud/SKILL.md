@@ -55,20 +55,36 @@ curl -s -X DELETE http://localhost:3000/api/clients/cli_xxx
 
 仅紧急只读查看时可 `Read data/clients.json`。**禁止** Agent 直接 `writeJsonFile` 绕过校验——易破坏 ID 引用与 Zod 约束。
 
-## 方式 C · CLI 脚本（规划中）
+## 方式 C · CLI（推荐）
 
-路线图见 [agent-crud-roadmap.md](../thesis-platform-dev/knowledge/agent-crud-roadmap.md)。
+```bash
+npm run cli -- clients list [--page N] [--page-size N] [--q text]
+npm run cli -- clients get <id>
+npm run cli -- clients create --json payload.json
+npm run cli -- clients update <id> --json payload.json
+npm run cli -- clients delete <id>
 
-实现 `scripts/thesis-cli.mjs` 后，Agent 优先用 CLI（无需 dev server，走同一套 validation）。
+npm run cli -- orders create --client-id <id> --json payload.json
+npm run cli -- orders list --page 1 --page-size 20
+# writers 同理
+```
 
-## 方式 D · MCP Server（规划中）
+无需启动 dev server，直接复用 `api/services` 与 Zod 校验。
 
-MCP tools 封装 REST 或 repository 调用；配置后 Cursor 可直接 `@thesis-platform` 操作。
+## 方式 D · MCP Server（Cursor 原生）
+
+项目已配置 `.cursor/mcp.json`，重启 Cursor 后可用 tools：
+
+- `list_clients` / `get_client` / `create_client` / `update_client` / `delete_client`
+- `list_orders` / `get_order` / `create_order_for_client` / `update_order` / `delete_order`
+- `list_writers` / `get_writer` / `create_writer` / `update_writer` / `delete_writer`
+
+本地调试：`npm run mcp:thesis`
 
 ## Agent 操作 checklist
 
-1. **建单** → 必须先有 `clientId`，走 `POST /api/clients/[id]/create-order`
-2. **删客户/写手** → 当前无关联检查，操作前用 orders list 确认无引用
+1. **建单** → 必须先有 `clientId`，走 `create_order_for_client` / CLI `orders create --client-id` / `POST .../create-order`
+2. **删客户/写手** → Service 层会 409 拦截有关联工单；收到 CONFLICT 时先处理工单
 3. **改财务** → 保持 amount/settled/receivable/profit 口径一致
 4. **改 writer load** → 优先通过派单改 `Order.writerId`，勿手工改 `activeOrderCount`
 5. **证明成功** → 操作后 GET 对应资源确认

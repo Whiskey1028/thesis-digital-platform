@@ -2,12 +2,14 @@ import "server-only";
 
 import { createEntityId } from "@/lib/api/ids";
 import { ApiError } from "@/lib/api/errors";
+import { type ClientListQuery } from "@/lib/api/pagination";
+import { queryClients } from "@/lib/api/list-queries";
 import { repositories } from "@/lib/repositories";
 import type { Client } from "@/lib/types";
 import type { ClientInput } from "@/lib/validation";
 
-export async function listClients() {
-  return repositories.clients.list();
+export async function listClients(query: ClientListQuery = {}) {
+  return queryClients(query);
 }
 
 export async function getClientById(id: string) {

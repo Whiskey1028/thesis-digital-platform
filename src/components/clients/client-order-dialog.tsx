@@ -6,6 +6,7 @@ import { ModalShell } from "@/components/ui/modal-shell";
 import { FieldRow } from "@/components/ui/field-row";
 import { SearchableSingleSelect, SegmentedSelect } from "@/components/ui/form-controls";
 import { serviceTypeOptions } from "@/lib/constants";
+import { apiFetch, formatApiError } from "@/lib/client/api-fetch";
 import type { Client, OrderDraft, Writer } from "@/lib/types";
 
 const inputClassName = "w-full rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm";
@@ -131,7 +132,7 @@ export function ClientOrderDialog({
 
               startTransition(() => {
                 void (async () => {
-                  const response = await fetch(`/api/clients/${client.id}/create-order`, {
+                  const result = await apiFetch(`/api/clients/${client.id}/create-order`, {
                     method: "POST",
                     headers: {
                       "Content-Type": "application/json"
@@ -139,12 +140,12 @@ export function ClientOrderDialog({
                     body: JSON.stringify(payload)
                   });
 
-                  if (response.ok) {
+                  if (result.ok) {
                     setMessage("工单已创建，列表已刷新。");
                     router.refresh();
                     setOpen(false);
                   } else {
-                    setMessage("创建失败，请检查表单数据后重试。");
+                    setMessage(formatApiError(result.error));
                   }
                 })();
               });

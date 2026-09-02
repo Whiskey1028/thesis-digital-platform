@@ -18,32 +18,13 @@ Agent 已可通过以下方式操作数据：
 
 ## 推荐演进路径
 
-### Phase 1 · CLI（最快落地）
+### Phase 1 · CLI ✅
 
-新增 `scripts/thesis-cli.mjs`：
+`npm run cli -- <resource> <action>`，见 `.cursor/skills/thesis-agent-crud/SKILL.md`。
 
-```bash
-node scripts/thesis-cli.mjs clients list
-node scripts/thesis-cli.mjs clients get cli_xxx
-node scripts/thesis-cli.mjs orders create --client-id cli_xxx --json payload.json
-```
+### Phase 2 · MCP Server ✅
 
-- 直接 import repository + validation（与 API 同逻辑）
-- 无需启动 Next.js
-- Agent 在 terminal 调用即可
-
-### Phase 2 · MCP Server（Cursor 原生集成）
-
-新增 `mcp/thesis-platform/` MCP server，暴露 tools：
-
-| Tool | 对应 |
-|------|------|
-| `list_clients` | GET /api/clients |
-| `create_order_for_client` | POST /api/clients/[id]/create-order |
-| `update_order` | PATCH /api/orders/[id] |
-| … | … |
-
-配置写入 `.cursor/mcp.json`（项目级）或用户全局 MCP 设置。
+`.cursor/mcp.json` + `mcp/thesis-platform/index.ts`，Cursor 重启后生效。
 
 ### Phase 3 · 安全与审计
 

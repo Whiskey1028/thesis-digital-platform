@@ -1,10 +1,14 @@
 import { jsonData, runRoute } from "@/lib/api/responses";
-import { parseJsonBody } from "@/lib/api/parse-request";
+import { parseJsonBody, parseSearchParams } from "@/lib/api/parse-request";
 import { createWriter, listWriters } from "@/lib/api/services/writer.service";
 import { writerInputSchema } from "@/lib/validation";
+import { writerListQuerySchema } from "@/lib/api/pagination";
 
-export async function GET() {
-  return runRoute(async () => jsonData(await listWriters()));
+export async function GET(request: Request) {
+  return runRoute(async () => {
+    const query = parseSearchParams(request, writerListQuerySchema);
+    return jsonData(await listWriters(query));
+  });
 }
 
 export async function POST(request: Request) {

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "thesis-platform": {
+      "command": "npm",
+      "args": ["run", "mcp:thesis"]
+    }
+  }
+}

@@ -18,7 +18,7 @@ Skill 根目录：`.cursor/skills/thesis-platform-dev/`。
 
 ## 架构速览
 
-详见根目录 [docs/ARCHITECTURE.md](../../../docs/ARCHITECTURE.md)。
+详见根目录 [ARCHITECTURE.md](../../../ARCHITECTURE.md)。
 
 ```
 Route Handler  →  lib/api/services  →  repositories  →  data/*.json

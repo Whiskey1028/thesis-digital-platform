@@ -2,13 +2,15 @@ import "server-only";
 
 import { ApiError } from "@/lib/api/errors";
 import { createEntityId } from "@/lib/api/ids";
-import { getWriterWithLoad, listWritersWithLoad } from "@/lib/queries/writers";
+import { queryWriters } from "@/lib/api/list-queries";
+import type { WriterListQuery } from "@/lib/api/pagination";
+import { getWriterWithLoad } from "@/lib/queries/writers";
 import { repositories } from "@/lib/repositories";
 import type { Writer } from "@/lib/types";
 import type { WriterInput } from "@/lib/validation";
 
-export async function listWriters() {
-  return listWritersWithLoad();
+export async function listWriters(query: WriterListQuery = {}) {
+  return queryWriters(query);
 }
 
 export async function getWriterById(id: string) {

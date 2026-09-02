@@ -4,14 +4,14 @@
 
 | Method | Path | 说明 |
 |--------|------|------|
-| GET | `/api/clients` | 列表 |
+| GET | `/api/clients?page=1&pageSize=20&q=关键词` | 列表（可选分页/筛选） |
 | POST | `/api/clients` | 创建 |
 | GET/PATCH/DELETE | `/api/clients/[id]` | 单条 CRUD |
 | POST | `/api/clients/[id]/create-order` | **唯一建单入口** |
-| GET | `/api/orders` | 列表 |
+| GET | `/api/orders?page=1&pageSize=20&status=in_progress` | 列表（可选分页/筛选） |
 | POST | `/api/orders` | **405 禁止** |
 | GET/PATCH/DELETE | `/api/orders/[id]` | 单条 CRUD |
-| GET/POST | `/api/writers` | 列表 / 创建 |
+| GET/POST | `/api/writers?page=1&pageSize=20` | 列表（可选分页）/ 创建 |
 | GET/PATCH/DELETE | `/api/writers/[id]` | 单条 CRUD |
 | GET | `/api/export/clients` | Excel 导出 |
 | GET | `/api/export/orders` | Excel 导出（join clients + writers） |
@@ -46,8 +46,12 @@
 
 ```bash
 npm install
-npm run dev        # http://localhost:3000
-npm run import:history  # 历史 Excel 导入
+npm run dev              # http://localhost:3000
+npm run import:history   # 历史 Excel 导入
+npm run cli -- clients list --page 1 --page-size 10
+npm run mcp:thesis       # Cursor MCP（见 .cursor/mcp.json）
 ```
 
 Node.js 20+。缓存异常时删除 `.next` 后重启。
+
+架构说明见根目录 `ARCHITECTURE.md`。
