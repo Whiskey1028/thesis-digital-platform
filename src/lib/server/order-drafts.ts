@@ -5,8 +5,13 @@ export function createOrderDraftFromClient(client: Client): OrderDraft {
 
   return {
     clientId: client.id,
+    clientName: client.name,
     sourceType: "self_owned",
     title: client.preferredTitle ?? "",
+    schoolType: client.schoolType,
+    school: client.school,
+    educationLevel: client.educationLevel,
+    major: client.major,
     serviceType: client.preferredServiceType ?? "论文全文",
     packageMode: client.preferredServiceType ?? "论文全文",
     writerId: null,

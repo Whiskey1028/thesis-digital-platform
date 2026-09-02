@@ -1,3 +1,5 @@
+import "server-only";
+
 import { mockOrders } from "@/lib/mock-data";
 import type { Order } from "@/lib/types";
 import type { OrderRepository } from "@/lib/repositories/interfaces";
@@ -12,6 +14,14 @@ export const jsonOrderRepository: OrderRepository = {
   async getById(id) {
     const orders = await readJsonFile<Order[]>(filename, mockOrders);
     return orders.find((item) => item.id === id) ?? null;
+  },
+  async countByClientId(clientId) {
+    const orders = await readJsonFile<Order[]>(filename, mockOrders);
+    return orders.filter((item) => item.clientId === clientId).length;
+  },
+  async countByWriterId(writerId) {
+    const orders = await readJsonFile<Order[]>(filename, mockOrders);
+    return orders.filter((item) => item.writerId === writerId).length;
   },
   async create(input) {
     const orders = await readJsonFile<Order[]>(filename, mockOrders);

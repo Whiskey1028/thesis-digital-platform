@@ -3,10 +3,10 @@ import { Topbar } from "@/components/layout/topbar";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { WriterCreateSection } from "@/components/writers/writer-create-section";
 import { WriterManagementPanel } from "@/components/writers/writer-management-panel";
-import { repositories } from "@/lib/repositories";
+import { listWritersWithLoad } from "@/lib/queries/writers";
 
 export default async function WritersPage() {
-  const writers = await repositories.writers.list();
+  const writers = await listWritersWithLoad();
 
   const totalCapacity = writers.reduce((sum, writer) => sum + writer.capacity, 0);
   const activeLoad = writers.reduce((sum, writer) => sum + writer.activeOrderCount, 0);

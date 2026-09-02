@@ -8,6 +8,7 @@ import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ExportExcelButton } from "@/components/ui/export-excel-button";
 import { Pagination } from "@/components/ui/pagination";
+import { apiFetch, formatApiError } from "@/lib/client/api-fetch";
 import {
   getBooleanParam,
   getEnumParam,
@@ -288,12 +289,15 @@ export function WriterManagementPanel({ writers }: { writers: Writer[] }) {
                       if (!confirmed) return;
                       startTransition(() => {
                         void (async () => {
-                          const response = await fetch(`/api/writers/${writer.id}`, { method: "DELETE" });
-                          if (response.ok) {
+                          const result = await apiFetch<{ ok: true }>(
+                            `/api/writers/${writer.id}`,
+                            { method: "DELETE" }
+                          );
+                          if (result.ok) {
                             setMessage("写手已删除。");
                             router.refresh();
                           } else {
-                            setMessage("写手删除失败。");
+                            setMessage(formatApiError(result.error));
                           }
                         })();
                       });
@@ -445,7 +449,6 @@ export function WriterManagementPanel({ writers }: { writers: Writer[] }) {
                     .filter(Boolean),
                   availability: String(formData.get("availability") ?? "available"),
                   capacity: Number(formData.get("capacity") ?? 1),
-                  activeOrderCount: Number(formData.get("activeOrderCount") ?? 0),
                   rating: Number(formData.get("rating") ?? 4.5),
                   completionRate: Number(formData.get("completionRate") ?? 0.9),
                   averageTurnaroundDays: Number(formData.get("averageTurnaroundDays") ?? 5),
@@ -500,7 +503,7 @@ export function WriterManagementPanel({ writers }: { writers: Writer[] }) {
                 <input name="capacity" type="number" defaultValue={editingWriter.capacity} className={inputClassName} />
               </FieldRow>
               <FieldRow label="当前单量">
-                <input name="activeOrderCount" type="number" defaultValue={editingWriter.activeOrderCount} className={inputClassName} />
+                <div className="px-1 py-3 text-sm text-slate-800">{editingWriter.activeOrderCount}（由在途工单自动计算）</div>
               </FieldRow>
               <FieldRow label="评分">
                 <input name="rating" type="number" step="0.1" defaultValue={editingWriter.rating} className={inputClassName} />

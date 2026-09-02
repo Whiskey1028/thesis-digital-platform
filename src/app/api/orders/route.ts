@@ -1,16 +1,13 @@
-import { NextResponse } from "next/server";
-import { repositories } from "@/lib/repositories";
+import { jsonData, runRoute, toErrorResponse } from "@/lib/api/responses";
+import { ApiError } from "@/lib/api/errors";
+import { listOrders } from "@/lib/api/services/order.service";
 
 export async function GET() {
-  const orders = await repositories.orders.list();
-  return NextResponse.json({ data: orders });
+  return runRoute(async () => jsonData(await listOrders()));
 }
 
-export async function POST() {
-  return NextResponse.json(
-    {
-      error: "Orders must be created from a client profile."
-    },
-    { status: 405 }
+export function POST() {
+  return toErrorResponse(
+    ApiError.methodNotAllowed("Orders must be created from a client profile.")
   );
 }

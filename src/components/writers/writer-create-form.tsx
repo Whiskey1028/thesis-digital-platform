@@ -33,7 +33,6 @@ export function WriterCreateForm() {
           specialties,
           availability: String(formData.get("availability") ?? availability),
           capacity: Number(formData.get("capacity") ?? 1),
-          activeOrderCount: Number(formData.get("activeOrderCount") ?? 0),
           rating: Number(formData.get("rating") ?? 4.5),
           completionRate: Number(formData.get("completionRate") ?? 0.9),
           averageTurnaroundDays: Number(formData.get("averageTurnaroundDays") ?? 5),
@@ -103,9 +102,6 @@ export function WriterCreateForm() {
       </FieldRow>
       <FieldRow label="容量上限">
         <input name="capacity" type="number" className={inputClassName} />
-      </FieldRow>
-      <FieldRow label="当前单量">
-        <input name="activeOrderCount" type="number" className={inputClassName} />
       </FieldRow>
       <FieldRow label="评分">
         <input name="rating" type="number" step="0.1" className={inputClassName} />

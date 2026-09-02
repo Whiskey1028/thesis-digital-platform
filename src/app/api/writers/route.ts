@@ -1,30 +1,16 @@
-import { NextResponse } from "next/server";
-import { repositories } from "@/lib/repositories";
-import { writerSchema } from "@/lib/validation";
-import type { Writer } from "@/lib/types";
-
-function createWriterId() {
-  return `wri_${Date.now()}`;
-}
+import { jsonData, runRoute } from "@/lib/api/responses";
+import { parseJsonBody } from "@/lib/api/parse-request";
+import { createWriter, listWriters } from "@/lib/api/services/writer.service";
+import { writerInputSchema } from "@/lib/validation";
 
 export async function GET() {
-  const writers = await repositories.writers.list();
-  return NextResponse.json({ data: writers });
+  return runRoute(async () => jsonData(await listWriters()));
 }
 
 export async function POST(request: Request) {
-  const payload = await request.json();
-  const parsed = writerSchema.safeParse(payload);
-
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  }
-
-  const writer: Writer = {
-    id: createWriterId(),
-    ...parsed.data
-  };
-
-  const created = await repositories.writers.create(writer);
-  return NextResponse.json({ data: created }, { status: 201 });
+  return runRoute(async () => {
+    const input = await parseJsonBody(request, writerInputSchema);
+    const created = await createWriter(input);
+    return jsonData(created, 201);
+  });
 }

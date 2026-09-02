@@ -1,52 +1,40 @@
-import { NextResponse } from "next/server";
-import { repositories } from "@/lib/repositories";
-import { writerSchema } from "@/lib/validation";
+import { jsonData, jsonOk, runRoute } from "@/lib/api/responses";
+import { parseJsonBody, parseRouteParams } from "@/lib/api/parse-request";
+import {
+  deleteWriter,
+  getWriterById,
+  updateWriter
+} from "@/lib/api/services/writer.service";
+import { writerInputSchema } from "@/lib/validation";
 
 export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params;
-  const writer = await repositories.writers.getById(id);
-
-  if (!writer) {
-    return NextResponse.json({ error: "Writer not found" }, { status: 404 });
-  }
-
-  return NextResponse.json({ data: writer });
+  return runRoute(async () => {
+    const { id } = await parseRouteParams(context);
+    return jsonData(await getWriterById(id));
+  });
 }
 
 export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params;
-  const payload = await request.json();
-  const parsed = writerSchema.partial().safeParse(payload);
-
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  }
-
-  const updated = await repositories.writers.update(id, parsed.data);
-
-  if (!updated) {
-    return NextResponse.json({ error: "Writer not found" }, { status: 404 });
-  }
-
-  return NextResponse.json({ data: updated });
+  return runRoute(async () => {
+    const { id } = await parseRouteParams(context);
+    const input = await parseJsonBody(request, writerInputSchema.partial());
+    return jsonData(await updateWriter(id, input));
+  });
 }
 
 export async function DELETE(
   _request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params;
-  const removed = await repositories.writers.remove(id);
-
-  if (!removed) {
-    return NextResponse.json({ error: "Writer not found" }, { status: 404 });
-  }
-
-  return NextResponse.json({ ok: true });
+  return runRoute(async () => {
+    const { id } = await parseRouteParams(context);
+    await deleteWriter(id);
+    return jsonOk();
+  });
 }

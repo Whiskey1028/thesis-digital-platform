@@ -8,6 +8,7 @@ import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ExportExcelButton } from "@/components/ui/export-excel-button";
 import { Pagination } from "@/components/ui/pagination";
+import { apiFetch, formatApiError } from "@/lib/client/api-fetch";
 import {
   getBooleanParam,
   getEnumParam,
@@ -300,12 +301,15 @@ export function ClientManagementPanel({
                       if (!confirmed) return;
                       startTransition(() => {
                         void (async () => {
-                          const response = await fetch(`/api/clients/${client.id}`, { method: "DELETE" });
-                          if (response.ok) {
+                          const result = await apiFetch<{ ok: true }>(
+                            `/api/clients/${client.id}`,
+                            { method: "DELETE" }
+                          );
+                          if (result.ok) {
                             setMessage("客户已删除。");
                             router.refresh();
                           } else {
-                            setMessage("客户删除失败。");
+                            setMessage(formatApiError(result.error));
                           }
                         })();
                       });

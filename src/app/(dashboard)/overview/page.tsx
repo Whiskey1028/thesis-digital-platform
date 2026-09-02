@@ -1,14 +1,10 @@
 import { Suspense } from "react";
 import { OverviewFilterPanel } from "@/components/dashboard/overview-filter-panel";
 import { Topbar } from "@/components/layout/topbar";
-import { repositories } from "@/lib/repositories";
+import { loadPlatformSnapshot } from "@/lib/queries/platform-data";
 
 export default async function OverviewPage() {
-  const [orders, writers, clients] = await Promise.all([
-    repositories.orders.list(),
-    repositories.writers.list(),
-    repositories.clients.list()
-  ]);
+  const { orders, writers, clients } = await loadPlatformSnapshot();
 
   return (
     <div className="pb-10">

@@ -11,6 +11,8 @@ export interface ClientRepository {
 export interface OrderRepository {
   list(): Promise<Order[]>;
   getById(id: string): Promise<Order | null>;
+  countByClientId(clientId: string): Promise<number>;
+  countByWriterId(writerId: string): Promise<number>;
   create(input: Order): Promise<Order>;
   update(id: string, input: Partial<Order>): Promise<Order | null>;
   remove(id: string): Promise<boolean>;

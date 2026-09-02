@@ -32,12 +32,11 @@ export const clientSchema = z.object({
   notes: z.string().optional()
 });
 
-export const writerSchema = z.object({
+export const writerInputSchema = z.object({
   name: z.string().min(1),
   specialties: z.array(z.string().min(1)).min(1),
   availability: availabilitySchema,
   capacity: z.number().int().positive(),
-  activeOrderCount: z.number().int().nonnegative(),
   rating: z.number().min(0).max(5),
   completionRate: z.number().min(0).max(1),
   averageTurnaroundDays: z.number().positive(),
@@ -45,6 +44,11 @@ export const writerSchema = z.object({
   ownerName: z.string().min(1),
   settlementMode: z.string().min(1),
   notes: z.string().optional()
+});
+
+/** @deprecated Use writerInputSchema — activeOrderCount is derived from orders */
+export const writerSchema = writerInputSchema.extend({
+  activeOrderCount: z.number().int().nonnegative()
 });
 
 export const createOrderFromClientSchema = z.object({
@@ -72,3 +76,8 @@ export const createOrderFromClientSchema = z.object({
 });
 
 export const updateOrderSchema = createOrderFromClientSchema.partial();
+
+export type ClientInput = z.infer<typeof clientSchema>;
+export type WriterInput = z.infer<typeof writerInputSchema>;
+export type CreateOrderFromClientInput = z.infer<typeof createOrderFromClientSchema>;
+export type UpdateOrderInput = z.infer<typeof updateOrderSchema>;

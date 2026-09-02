@@ -1,19 +1,12 @@
 import { Suspense } from "react";
-import { ClientCreateForm } from "@/components/clients/client-create-form";
 import { ClientManagementPanel } from "@/components/clients/client-management-panel";
 import { Topbar } from "@/components/layout/topbar";
-import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { GlassCard } from "@/components/ui/glass-card";
 import { KpiCard } from "@/components/ui/kpi-card";
-import { repositories } from "@/lib/repositories";
+import { loadPlatformSnapshot } from "@/lib/queries/platform-data";
 import { ClientCreateSection } from "@/components/clients/client-create-section";
 
 export default async function ClientsPage() {
-  const [clients, orders, writers] = await Promise.all([
-    repositories.clients.list(),
-    repositories.orders.list(),
-    repositories.writers.list()
-  ]);
+  const { clients, orders, writers } = await loadPlatformSnapshot();
 
   const highRiskClients = clients.filter((client) => client.riskLevel === "high").length;
   const convertibleClients = clients.filter((client) => client.preferredTitle && client.preferredBudget).length;

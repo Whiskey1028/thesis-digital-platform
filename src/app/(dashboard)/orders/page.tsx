@@ -3,14 +3,10 @@ import { Topbar } from "@/components/layout/topbar";
 import { OrderPageSections } from "@/components/orders/order-page-sections";
 import { GlassCard } from "@/components/ui/glass-card";
 import { KpiCard } from "@/components/ui/kpi-card";
-import { repositories } from "@/lib/repositories";
+import { loadPlatformSnapshot } from "@/lib/queries/platform-data";
 
 export default async function OrdersPage() {
-  const [orders, writers, clients] = await Promise.all([
-    repositories.orders.list(),
-    repositories.writers.list(),
-    repositories.clients.list()
-  ]);
+  const { orders, writers, clients } = await loadPlatformSnapshot();
 
   const unassignedOrders = orders.filter((order) => order.writerId === null).length;
   const urgentOrders = orders.filter((order) => order.urgency === "high").length;
