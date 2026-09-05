@@ -9,6 +9,7 @@ import {
   type WriterListQuery
 } from "@/lib/api/pagination";
 import { overviewFilterSchema } from "@/lib/queries/overview";
+import { inboxQuerySchema, type InboxQuery } from "@/lib/queries/inbox";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -100,5 +101,19 @@ export function parseOverviewPageQuery(searchParams: SearchParams) {
     settledState: raw.overviewSettledState,
     dateFrom: raw.overviewDateFrom,
     dateTo: raw.overviewDateTo
+  });
+}
+
+export function parseInboxPageQuery(searchParams: SearchParams): InboxQuery {
+  const raw = toParamRecord(searchParams);
+
+  return inboxQuerySchema.parse({
+    q: raw.inboxQuery,
+    status: raw.inboxStatus,
+    sourceType: raw.inboxSourceType,
+    urgency: raw.inboxUrgency,
+    focus: raw.inboxFocus,
+    page: raw.inboxPage ?? "1",
+    pageSize: raw.inboxPageSize ?? "20"
   });
 }

@@ -32,6 +32,7 @@ import {
   writerInputSchema
 } from "@/lib/validation";
 import { handleCliError, parseListQueryFlags, printJson, readJsonArg } from "@/lib/cli/format";
+import { inboxQuerySchema, loadInboxPayload } from "@/lib/queries/inbox";
 
 function usage() {
   printJson({
@@ -50,7 +51,8 @@ function usage() {
       "npm run cli -- writers get <id>",
       "npm run cli -- writers create --json payload.json",
       "npm run cli -- writers update <id> --json payload.json",
-      "npm run cli -- writers delete <id>"
+      "npm run cli -- writers delete <id>",
+      "npm run cli -- inbox list [--page N] [--page-size N] [--q text] [--status s] [--source-type t] [--urgency u] [--focus overdue|due_soon|no_deadline|unassigned]"
     ]
   });
 }
@@ -62,6 +64,29 @@ function readFlag(args: string[], flag: string) {
   }
 
   return args[index + 1];
+}
+
+function parseInboxFlags(args: string[]) {
+  const base = parseListQueryFlags(args);
+  return {
+    ...base,
+    status: readFlag(args, "--status"),
+    sourceType: readFlag(args, "--source-type"),
+    urgency: readFlag(args, "--urgency"),
+    focus: readFlag(args, "--focus")
+  };
+}
+
+async function runInbox(action: string, rest: string[]) {
+  switch (action) {
+    case "list": {
+      const query = inboxQuerySchema.parse(parseInboxFlags(rest));
+      printJson(await loadInboxPayload(query));
+      return;
+    }
+    default:
+      usage();
+  }
 }
 
 async function runClients(action: string, rest: string[]) {
@@ -179,6 +204,9 @@ async function main() {
       return;
     case "writers":
       await runWriters(action, rest);
+      return;
+    case "inbox":
+      await runInbox(action, rest);
       return;
     default:
       usage();

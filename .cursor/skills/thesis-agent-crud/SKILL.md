@@ -28,6 +28,18 @@ Agent 应按顺序：
 
 缺字段时用合理默认（如 risk=medium、urgency=medium），并在回复里列出假设。
 
+### 在途待办（个人交付）
+
+本系统为单人使用。查看待办：
+
+```bash
+npm run cli -- inbox list
+npm run cli -- inbox list --focus overdue
+npm run cli -- inbox list --focus due_soon
+```
+
+或打开页面 `/inbox`：按对客 `deadline` 排序，优先逾期与临期。
+
 ## 方式 A · REST API（dev server 运行时）
 
 启动：`npm run dev`（若 3000 被占用则看终端实际端口）
