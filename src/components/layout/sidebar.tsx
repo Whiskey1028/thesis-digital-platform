@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const items = [
   { href: "/overview", label: "总览", helper: "经营视角" },
+  { href: "/reports", label: "报表", helper: "客户与订单画像" },
   { href: "/clients", label: "论文客户", helper: "先建客户档案" },
   { href: "/orders", label: "论文工单", helper: "客户驱动工单" },
   { href: "/writers", label: "论文写手", helper: "独立写手池" }
