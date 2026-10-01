@@ -6,6 +6,7 @@ const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "/thesis";
 const nextConfig: NextConfig = {
   basePath,
   output: "standalone",
+  skipTrailingSlashRedirect: true,
   serverExternalPackages: ["better-sqlite3"],
   env: {
     NEXT_PUBLIC_BASE_PATH: basePath
