@@ -21,12 +21,13 @@ import {
 import { serviceTypeOptions } from "@/lib/constants";
 import { apiFetch, formatApiError } from "@/lib/client/api-fetch";
 import {
-  getBooleanParam,
   getEnumParam,
   getNumberParam,
   getStringParam,
   replaceUrlParams
 } from "@/lib/client-url-state";
+import { usePersistedOpenState } from "@/lib/client-ui-preference";
+import { useDeepLinkEntity } from "@/lib/client/use-deep-link-entity";
 import {
   countActiveFilters,
   isEnumFilterActive,
@@ -65,13 +66,29 @@ export function OrderManagementPanel({
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [listOpen, setListOpen] = useState(() => getBooleanParam(searchParams, "orderListOpen", true));
+  const [filterOpen, setFilterOpen] = usePersistedOpenState({
+    storageKey: "thesis.ui.orderFiltersOpen",
+    urlKey: "orderFiltersOpen",
+    searchParams,
+    pathname,
+    router,
+    defaultOpen: true
+  });
+  const [listOpen, setListOpen] = usePersistedOpenState({
+    storageKey: "thesis.ui.orderListOpen",
+    urlKey: "orderListOpen",
+    searchParams,
+    pathname,
+    router,
+    defaultOpen: true
+  });
 
   const [editSourceType, setEditSourceType] = useState<"self_owned" | "outsourced">("self_owned");
   const [editServiceType, setEditServiceType] = useState("论文全文");
   const [editPackageMode, setEditPackageMode] = useState("论文全文");
   const [editWriterId, setEditWriterId] = useState("");
 
+  const deepLinkOrderId = getStringParam(searchParams, "orderId", "");
   const clientId = getStringParam(searchParams, "clientId", "");
   const writerId = getStringParam(searchParams, "writerId", "");
   const status = getEnumParam(searchParams, "orderStatus", statusOptions, "all");
@@ -84,6 +101,18 @@ export function OrderManagementPanel({
   const pageSize = getNumberParam(searchParams, "orderPageSize", 10);
   const queryFromUrl = getStringParam(searchParams, "orderQuery", "");
   const [queryInput, setQueryInput] = useState(queryFromUrl);
+
+  useDeepLinkEntity<Order>({
+    entityId: deepLinkOrderId,
+    listItems: list.items,
+    getItemId: (order) => order.id,
+    fetchPathPrefix: "/api/orders/",
+    scrollAnchorId: "order-list-panel",
+    onOpen: (order) => {
+      setViewingOrder(order);
+      setListOpen(true);
+    }
+  });
 
   useEffect(() => {
     setQueryInput(queryFromUrl);
@@ -110,16 +139,6 @@ export function OrderManagementPanel({
     return () => window.clearTimeout(timer);
   }, [pathname, queryFromUrl, queryInput, router]);
 
-  useEffect(() => {
-    replaceUrlParams({
-      pathname,
-      router,
-      updates: {
-        orderListOpen: listOpen ? null : "0"
-      }
-    });
-  }, [listOpen, pathname, router]);
-
   function updateParams(updates: Record<string, string | null>) {
     startTransition(() => {
       replaceUrlParams({ pathname, router, updates });
@@ -138,9 +157,17 @@ export function OrderManagementPanel({
       orderSort: null,
       clientId: null,
       writerId: null,
+      orderId: null,
       orderPage: null,
       orderPageSize: null
     });
+  }
+
+  function clearDeepLinkOrderId() {
+    if (!deepLinkOrderId) {
+      return;
+    }
+    updateParams({ orderId: null });
   }
 
   function openOrderEditor(order: Order) {
@@ -150,6 +177,12 @@ export function OrderManagementPanel({
     setEditPackageMode(order.packageMode);
     setEditWriterId(order.writerId ?? "");
     setViewingOrder(null);
+    clearDeepLinkOrderId();
+  }
+
+  function closeOrderDetail() {
+    setViewingOrder(null);
+    clearDeepLinkOrderId();
   }
 
   const queryActive = isTextFilterActive(queryInput);
@@ -234,13 +267,16 @@ export function OrderManagementPanel({
   }
 
   const totalPages = Math.max(1, Math.ceil(list.total / list.pageSize));
+  const deepLinkActive = Boolean(deepLinkOrderId);
+  const filterOpenShown = deepLinkActive ? false : filterOpen;
+  const listOpenShown = deepLinkActive ? true : listOpen;
 
   return (
     <div className="space-y-6">
       <CollapsibleSection
-        title="工单列表"
-        open={listOpen}
-        onToggle={setListOpen}
+        title="筛选"
+        open={filterOpenShown}
+        onToggle={setFilterOpen}
         activeFilterCount={activeFilterCount}
       >
         <FilterBarShell active={hasActiveFilters}>
@@ -350,40 +386,46 @@ export function OrderManagementPanel({
         </FilterBarShell>
 
         <FilterChipRow chips={chips} />
-
-        <div className={isPending ? "opacity-55 transition-opacity" : "transition-opacity"}>
-          {list.items.length === 0 ? (
-            <FilteredEmptyState hasActiveFilters={hasActiveFilters} onReset={resetFilters} />
-          ) : (
-            <OrderTable
-              orders={list.items}
-              writers={writers}
-              onViewOrder={setViewingOrder}
-              onEditOrder={openOrderEditor}
-            />
-          )}
-          <div className="mt-4">
-            <Pagination
-              page={Math.min(page, totalPages)}
-              totalPages={totalPages}
-              pageSize={pageSize}
-              onChange={(nextPage) => updateParams({ orderPage: nextPage === 1 ? null : String(nextPage) })}
-              onPageSizeChange={(size) =>
-                updateParams({
-                  orderPageSize: size === 10 ? null : String(size),
-                  orderPage: null
-                })
-              }
-            />
-          </div>
-        </div>
       </CollapsibleSection>
+
+      <div id="order-list-panel">
+        <CollapsibleSection title="工单列表" open={listOpenShown} onToggle={setListOpen}>
+          <div className={isPending ? "opacity-55 transition-opacity" : "transition-opacity"}>
+            {list.items.length === 0 ? (
+              <FilteredEmptyState hasActiveFilters={hasActiveFilters} onReset={resetFilters} />
+            ) : (
+              <OrderTable
+                orders={list.items}
+                writers={writers}
+                onViewOrder={setViewingOrder}
+                onEditOrder={openOrderEditor}
+              />
+            )}
+            <div className="mt-4">
+              <Pagination
+                page={Math.min(page, totalPages)}
+                totalPages={totalPages}
+                pageSize={pageSize}
+                onChange={(nextPage) =>
+                  updateParams({ orderPage: nextPage === 1 ? null : String(nextPage) })
+                }
+                onPageSizeChange={(size) =>
+                  updateParams({
+                    orderPageSize: size === 10 ? null : String(size),
+                    orderPage: null
+                  })
+                }
+              />
+            </div>
+          </div>
+        </CollapsibleSection>
+      </div>
 
       {viewingOrder ? (
         <ModalShell
           title="工单详情"
           subtitle="客户与学校信息来自工单快照字段。"
-          onClose={() => setViewingOrder(null)}
+          onClose={closeOrderDetail}
         >
           {(() => {
             const writer = writers.find((item) => item.id === viewingOrder.writerId);

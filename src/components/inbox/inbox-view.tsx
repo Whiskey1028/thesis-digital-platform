@@ -16,12 +16,12 @@ import { KpiCard } from "@/components/ui/kpi-card";
 import { Pagination } from "@/components/ui/pagination";
 import { StatusPill } from "@/components/ui/status-pill";
 import {
-  getBooleanParam,
   getEnumParam,
   getNumberParam,
   getStringParam,
   replaceUrlParams
 } from "@/lib/client-url-state";
+import { usePersistedOpenState } from "@/lib/client-ui-preference";
 import type { InboxItem, InboxKpis } from "@/lib/queries/inbox";
 import type { PaginatedResult } from "@/lib/api/pagination";
 import {
@@ -69,9 +69,14 @@ export function InboxView({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
-  const [filterOpen, setFilterOpen] = useState(() =>
-    getBooleanParam(searchParams, "inboxFiltersOpen", true)
-  );
+  const [filterOpen, setFilterOpen] = usePersistedOpenState({
+    storageKey: "thesis.ui.inboxFiltersOpen",
+    urlKey: "inboxFiltersOpen",
+    searchParams,
+    pathname,
+    router,
+    defaultOpen: true
+  });
 
   const queryFromUrl = getStringParam(searchParams, "inboxQuery", "");
   const [queryInput, setQueryInput] = useState(queryFromUrl);
@@ -102,16 +107,6 @@ export function InboxView({
     }, 400);
     return () => window.clearTimeout(timer);
   }, [pathname, queryFromUrl, queryInput, router]);
-
-  useEffect(() => {
-    replaceUrlParams({
-      pathname,
-      router,
-      updates: {
-        inboxFiltersOpen: filterOpen ? null : "0"
-      }
-    });
-  }, [filterOpen, pathname, router]);
 
   function updateParams(updates: Record<string, string | null>) {
     startTransition(() => {
@@ -344,7 +339,7 @@ export function InboxView({
                     <tr key={item.id} className="border-b border-slate-100/80 last:border-0">
                       <td className="max-w-[280px] px-4 py-3">
                         <Link
-                          href={`/orders?orderQuery=${encodeURIComponent(item.title)}`}
+                          href={`/orders?orderId=${encodeURIComponent(item.id)}`}
                           className="font-medium text-slate-950 hover:underline"
                         >
                           {item.title}
@@ -383,7 +378,7 @@ export function InboxView({
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <Link
-                        href={`/orders?orderQuery=${encodeURIComponent(item.title)}`}
+                        href={`/orders?orderId=${encodeURIComponent(item.id)}`}
                         className="block truncate font-medium text-slate-950 hover:underline"
                       >
                         {item.title}

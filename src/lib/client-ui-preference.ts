@@ -31,9 +31,16 @@ function writeStoredBoolean(storageKey: string, value: boolean) {
   }
 }
 
+function urlTokenForOpen(open: boolean, defaultOpen: boolean): string | null {
+  if (open === defaultOpen) {
+    return null;
+  }
+  return open ? "1" : "0";
+}
+
 /**
  * 折叠区开合：URL 显式参数优先，否则读 localStorage，再否则用 defaultOpen。
- * 切换时同步写入 localStorage，并镜像到 URL（展开 "1"，收起 "0"）。
+ * 切换时写入 localStorage；URL 仅在与默认不同时写入，且避免无变化的 replace。
  */
 export function usePersistedOpenState({
   storageKey,
@@ -59,14 +66,20 @@ export function usePersistedOpenState({
 
   useEffect(() => {
     writeStoredBoolean(storageKey, open);
+    const desired = urlTokenForOpen(open, defaultOpen);
+    const current = searchParams.get(urlKey);
+    const currentNormalized = current === "1" || current === "0" ? current : null;
+    if (desired === currentNormalized) {
+      return;
+    }
     replaceUrlParams({
       pathname,
       router,
       updates: {
-        [urlKey]: open ? "1" : "0"
+        [urlKey]: desired
       }
     });
-  }, [open, pathname, router, storageKey, urlKey]);
+  }, [defaultOpen, open, pathname, router, searchParams, storageKey, urlKey]);
 
   return [open, setOpen] as const;
 }

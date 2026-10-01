@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { OverviewPanels } from "@/components/dashboard/overview-panels";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
@@ -12,11 +12,11 @@ import {
   type FilterChip
 } from "@/components/ui/filter-bar";
 import {
-  getBooleanParam,
   getEnumParam,
   getStringParam,
   replaceUrlParams
 } from "@/lib/client-url-state";
+import { usePersistedOpenState } from "@/lib/client-ui-preference";
 import {
   countActiveFilters,
   isEnumFilterActive,
@@ -46,9 +46,14 @@ export function OverviewFilterPanel({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
-  const [filterOpen, setFilterOpen] = useState(() =>
-    getBooleanParam(searchParams, "overviewFiltersOpen", true)
-  );
+  const [filterOpen, setFilterOpen] = usePersistedOpenState({
+    storageKey: "thesis.ui.overviewFiltersOpen",
+    urlKey: "overviewFiltersOpen",
+    searchParams,
+    pathname,
+    router,
+    defaultOpen: true
+  });
 
   const sourceType = getEnumParam(searchParams, "overviewSourceType", sourceTypeOptions, "all");
   const clientSource = getStringParam(searchParams, "overviewClientSource", "all");
@@ -59,16 +64,6 @@ export function OverviewFilterPanel({
   const settledState = getEnumParam(searchParams, "overviewSettledState", settledStateOptions, "all");
   const dateFrom = getStringParam(searchParams, "overviewDateFrom", "");
   const dateTo = getStringParam(searchParams, "overviewDateTo", "");
-
-  useEffect(() => {
-    replaceUrlParams({
-      pathname,
-      router,
-      updates: {
-        overviewFiltersOpen: filterOpen ? null : "0"
-      }
-    });
-  }, [filterOpen, pathname, router]);
 
   function updateParams(updates: Record<string, string | null>) {
     startTransition(() => {

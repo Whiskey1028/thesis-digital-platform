@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ReportsDashboard } from "@/components/reports/reports-dashboard";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
@@ -12,11 +12,11 @@ import {
   type FilterChip
 } from "@/components/ui/filter-bar";
 import {
-  getBooleanParam,
   getEnumParam,
   getStringParam,
   replaceUrlParams
 } from "@/lib/client-url-state";
+import { usePersistedOpenState } from "@/lib/client-ui-preference";
 import type { OverviewFilterOptions } from "@/lib/queries/overview";
 import type { ReportsPayload } from "@/lib/queries/reports";
 import {
@@ -47,9 +47,14 @@ export function ReportsView({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
-  const [filterOpen, setFilterOpen] = useState(() =>
-    getBooleanParam(searchParams, "reportFiltersOpen", true)
-  );
+  const [filterOpen, setFilterOpen] = usePersistedOpenState({
+    storageKey: "thesis.ui.reportFiltersOpen",
+    urlKey: "reportFiltersOpen",
+    searchParams,
+    pathname,
+    router,
+    defaultOpen: true
+  });
 
   const sourceType = getEnumParam(searchParams, "overviewSourceType", sourceTypeOptions, "all");
   const clientSource = getStringParam(searchParams, "overviewClientSource", "all");
@@ -60,16 +65,6 @@ export function ReportsView({
   const settledState = getEnumParam(searchParams, "overviewSettledState", settledStateOptions, "all");
   const dateFrom = getStringParam(searchParams, "overviewDateFrom", "");
   const dateTo = getStringParam(searchParams, "overviewDateTo", "");
-
-  useEffect(() => {
-    replaceUrlParams({
-      pathname,
-      router,
-      updates: {
-        reportFiltersOpen: filterOpen ? null : "0"
-      }
-    });
-  }, [filterOpen, pathname, router]);
 
   function updateParams(updates: Record<string, string | null>) {
     startTransition(() => {

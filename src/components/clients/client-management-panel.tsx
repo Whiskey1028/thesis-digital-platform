@@ -17,12 +17,13 @@ import {
 } from "@/components/ui/filter-bar";
 import { apiFetch, formatApiError } from "@/lib/client/api-fetch";
 import {
-  getBooleanParam,
   getEnumParam,
   getNumberParam,
   getStringParam,
   replaceUrlParams
 } from "@/lib/client-url-state";
+import { usePersistedOpenState } from "@/lib/client-ui-preference";
+import { useDeepLinkEntity } from "@/lib/client/use-deep-link-entity";
 import {
   countActiveFilters,
   isEnumFilterActive,
@@ -53,7 +54,14 @@ export function ClientManagementPanel({
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [listOpen, setListOpen] = useState(() => getBooleanParam(searchParams, "clientListOpen", true));
+  const [listOpen, setListOpen] = usePersistedOpenState({
+    storageKey: "thesis.ui.clientListOpen",
+    urlKey: "clientListOpen",
+    searchParams,
+    pathname,
+    router,
+    defaultOpen: true
+  });
 
   const focusedClientId = getStringParam(searchParams, "clientId", "");
   const riskLevel = getEnumParam(searchParams, "clientRisk", riskOptions, "all");
@@ -62,6 +70,18 @@ export function ClientManagementPanel({
   const pageSize = getNumberParam(searchParams, "clientPageSize", 10);
   const queryFromUrl = getStringParam(searchParams, "clientQuery", "");
   const [queryInput, setQueryInput] = useState(queryFromUrl);
+
+  useDeepLinkEntity<Client>({
+    entityId: focusedClientId,
+    listItems: list.items as unknown as Client[],
+    getItemId: (client) => client.id,
+    fetchPathPrefix: "/api/clients/",
+    scrollAnchorId: "client-list-panel",
+    onOpen: (client) => {
+      setViewingClient(client);
+      setListOpen(true);
+    }
+  });
 
   useEffect(() => {
     setQueryInput(queryFromUrl);
@@ -88,20 +108,22 @@ export function ClientManagementPanel({
     return () => window.clearTimeout(timer);
   }, [pathname, queryFromUrl, queryInput, router]);
 
-  useEffect(() => {
-    replaceUrlParams({
-      pathname,
-      router,
-      updates: {
-        clientListOpen: listOpen ? null : "0"
-      }
-    });
-  }, [listOpen, pathname, router]);
-
   function updateParams(updates: Record<string, string | null>) {
     startTransition(() => {
       replaceUrlParams({ pathname, router, updates });
     });
+  }
+
+  function clearDeepLinkClientId() {
+    if (!focusedClientId) {
+      return;
+    }
+    updateParams({ clientId: null });
+  }
+
+  function closeClientDetail() {
+    setViewingClient(null);
+    clearDeepLinkClientId();
   }
 
   function resetFilters() {
@@ -149,12 +171,14 @@ export function ClientManagementPanel({
   }
 
   const totalPages = Math.max(1, Math.ceil(list.total / list.pageSize));
+  const listOpenShown = focusedClientId ? true : listOpen;
 
   return (
     <div className="space-y-6">
+      <div id="client-list-panel">
       <CollapsibleSection
         title="客户列表"
-        open={listOpen}
+        open={listOpenShown}
         onToggle={setListOpen}
         activeFilterCount={activeFilterCount}
       >
@@ -231,9 +255,10 @@ export function ClientManagementPanel({
           </div>
         </div>
       </CollapsibleSection>
+      </div>
 
       {viewingClient ? (
-        <ModalShell title="客户详情" onClose={() => setViewingClient(null)} width="max-w-4xl">
+        <ModalShell title="客户详情" onClose={closeClientDetail} width="max-w-4xl">
           <div className="mt-6 space-y-4">
             <FieldRow label="客户姓名">
               <div className="px-1 py-3 text-sm text-slate-800">{viewingClient.name}</div>
@@ -262,6 +287,7 @@ export function ClientManagementPanel({
               onClick={() => {
                 setEditingClient(viewingClient);
                 setViewingClient(null);
+                clearDeepLinkClientId();
               }}
             >
               编辑客户

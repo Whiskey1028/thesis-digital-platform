@@ -19,12 +19,13 @@ import {
 } from "@/components/ui/filter-bar";
 import { apiFetch, formatApiError } from "@/lib/client/api-fetch";
 import {
-  getBooleanParam,
   getEnumParam,
   getNumberParam,
   getStringParam,
   replaceUrlParams
 } from "@/lib/client-url-state";
+import { usePersistedOpenState } from "@/lib/client-ui-preference";
+import { useDeepLinkEntity } from "@/lib/client/use-deep-link-entity";
 import {
   countActiveFilters,
   isEnumFilterActive,
@@ -46,7 +47,14 @@ export function WriterManagementPanel({ list }: { list: PaginatedResult<Writer> 
   const [viewingWriter, setViewingWriter] = useState<Writer | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [listOpen, setListOpen] = useState(() => getBooleanParam(searchParams, "writerListOpen", true));
+  const [listOpen, setListOpen] = usePersistedOpenState({
+    storageKey: "thesis.ui.writerListOpen",
+    urlKey: "writerListOpen",
+    searchParams,
+    pathname,
+    router,
+    defaultOpen: true
+  });
 
   const focusedWriterId = getStringParam(searchParams, "writerId", "");
   const availability = getEnumParam(searchParams, "writerAvailability", availabilityOptions, "all");
@@ -55,6 +63,18 @@ export function WriterManagementPanel({ list }: { list: PaginatedResult<Writer> 
   const pageSize = getNumberParam(searchParams, "writerPageSize", 8);
   const queryFromUrl = getStringParam(searchParams, "writerQuery", "");
   const [queryInput, setQueryInput] = useState(queryFromUrl);
+
+  useDeepLinkEntity<Writer>({
+    entityId: focusedWriterId,
+    listItems: list.items,
+    getItemId: (writer) => writer.id,
+    fetchPathPrefix: "/api/writers/",
+    scrollAnchorId: "writer-list-panel",
+    onOpen: (writer) => {
+      setViewingWriter(writer);
+      setListOpen(true);
+    }
+  });
 
   useEffect(() => {
     setQueryInput(queryFromUrl);
@@ -81,20 +101,22 @@ export function WriterManagementPanel({ list }: { list: PaginatedResult<Writer> 
     return () => window.clearTimeout(timer);
   }, [pathname, queryFromUrl, queryInput, router]);
 
-  useEffect(() => {
-    replaceUrlParams({
-      pathname,
-      router,
-      updates: {
-        writerListOpen: listOpen ? null : "0"
-      }
-    });
-  }, [listOpen, pathname, router]);
-
   function updateParams(updates: Record<string, string | null>) {
     startTransition(() => {
       replaceUrlParams({ pathname, router, updates });
     });
+  }
+
+  function clearDeepLinkWriterId() {
+    if (!focusedWriterId) {
+      return;
+    }
+    updateParams({ writerId: null });
+  }
+
+  function closeWriterDetail() {
+    setViewingWriter(null);
+    clearDeepLinkWriterId();
   }
 
   function resetFilters() {
@@ -142,12 +164,14 @@ export function WriterManagementPanel({ list }: { list: PaginatedResult<Writer> 
   }
 
   const totalPages = Math.max(1, Math.ceil(list.total / list.pageSize));
+  const listOpenShown = focusedWriterId ? true : listOpen;
 
   return (
     <div className="space-y-6">
+      <div id="writer-list-panel">
       <CollapsibleSection
         title="写手列表"
-        open={listOpen}
+        open={listOpenShown}
         onToggle={setListOpen}
         activeFilterCount={activeFilterCount}
       >
@@ -223,9 +247,10 @@ export function WriterManagementPanel({ list }: { list: PaginatedResult<Writer> 
           </div>
         </div>
       </CollapsibleSection>
+      </div>
 
       {viewingWriter ? (
-        <ModalShell title="写手详情" onClose={() => setViewingWriter(null)} width="max-w-4xl">
+        <ModalShell title="写手详情" onClose={closeWriterDetail} width="max-w-4xl">
           <div className="mt-6 space-y-4">
             <FieldRow label="姓名">
               <div className="px-1 py-3 text-sm text-slate-800">{viewingWriter.name}</div>
@@ -248,6 +273,7 @@ export function WriterManagementPanel({ list }: { list: PaginatedResult<Writer> 
               onClick={() => {
                 setEditingWriter(viewingWriter);
                 setViewingWriter(null);
+                clearDeepLinkWriterId();
               }}
             >
               编辑写手

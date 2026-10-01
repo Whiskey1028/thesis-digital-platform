@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { OrderBoard, type OrderBoardColumn } from "@/components/orders/order-board";
 import { OrderManagementPanel } from "@/components/orders/order-management-panel";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { getBooleanParam, replaceUrlParams } from "@/lib/client-url-state";
+import { usePersistedOpenState } from "@/lib/client-ui-preference";
 import type { PaginatedResult } from "@/lib/api/pagination";
 import type { Order, Writer } from "@/lib/types";
 
@@ -23,23 +22,22 @@ export function OrderPageSections({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [boardOpen, setBoardOpen] = useState(() => getBooleanParam(searchParams, "orderBoardOpen", true));
-
-  useEffect(() => {
-    replaceUrlParams({
-      pathname,
-      router,
-      updates: {
-        orderBoardOpen: boardOpen ? null : "0"
-      }
-    });
-  }, [boardOpen, pathname, router]);
+  const [boardOpen, setBoardOpen] = usePersistedOpenState({
+    storageKey: "thesis.ui.orderBoardOpen",
+    urlKey: "orderBoardOpen",
+    searchParams,
+    pathname,
+    router,
+    defaultOpen: true
+  });
+  const deepLinkOrderId = searchParams.get("orderId");
+  const boardOpenShown = deepLinkOrderId ? false : boardOpen;
 
   return (
     <>
       <CollapsibleSection
         title="工单分类泳道"
-        open={boardOpen}
+        open={boardOpenShown}
         onToggle={setBoardOpen}
       >
         <OrderBoard columns={boardColumns} />
