@@ -3,8 +3,10 @@ import { execFile } from "node:child_process";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
+import { educationLevels } from "@/lib/constants";
+import { resolveSchoolType } from "@/lib/school-type-map";
 import { replaceSqliteDataset } from "@/lib/server/sqlite/db";
-import type { Client, Order, Writer } from "@/lib/types";
+import type { Client, EducationLevel, Order, Writer } from "@/lib/types";
 
 const execFileAsync = promisify(execFile);
 
@@ -12,17 +14,36 @@ const root = process.cwd();
 const rawDir = path.join(root, "raw");
 const dataDir = path.join(root, "data");
 const scriptsDir = path.join(root, "scripts");
-const pythonPath = process.env.PYTHON ?? "python";
+const pythonPath = process.env.PYTHON ?? "python3";
 const extractorScriptPath = path.join(scriptsDir, "extract-xlsx.py");
 
+const SELF_SHEET = "第一桶金100w（自接）";
+const OUTSOURCED_SHEET = "第一桶金100w（转包）";
+
+type RawRow = Record<string, unknown>;
+type NamedRow = Record<string, unknown>;
+
 function normalizeDate(value: unknown) {
-  if (!value) return "";
-  if (/^\d{4}-\d{2}-\d{2}$/.test(String(value))) return String(value);
+  if (value === null || value === undefined || value === "") return "";
+  const text = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(text)) return text.slice(0, 10);
   const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return String(value);
+  if (!Number.isFinite(numeric)) return text;
   const excelEpoch = new Date(Date.UTC(1899, 11, 30));
   const normalized = new Date(excelEpoch.getTime() + numeric * 24 * 60 * 60 * 1000);
   return normalized.toISOString().slice(0, 10);
+}
+
+function asText(value: unknown, fallback = "") {
+  if (value === null || value === undefined) return fallback;
+  const text = String(value).trim();
+  return text || fallback;
+}
+
+function asNumber(value: unknown) {
+  if (value === null || value === undefined || value === "") return undefined;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : undefined;
 }
 
 function makeClientId(index: number) {
@@ -33,59 +54,142 @@ function makeOrderId(index: number) {
   return `hist_ord_${index.toString().padStart(4, "0")}`;
 }
 
-type SourceType = "self_owned" | "outsourced";
-type Row = Record<string, unknown>;
+function buildHeaderMap(headerRow: RawRow | undefined) {
+  const map = new Map<string, string>();
+  if (!headerRow) return map;
 
-function resolveOrderAmount(row: Row, sourceType: SourceType) {
-  if (sourceType === "self_owned") {
-    const totalPrice = Number(row["M"] ?? 0);
-    const income = Number(row["H"] ?? 0);
-    return totalPrice > 0 ? totalPrice : income;
+  for (const [col, value] of Object.entries(headerRow)) {
+    const name = asText(value);
+    if (name) map.set(name, col);
   }
-  return Number(row["G"] ?? 0);
+  return map;
 }
 
-function buildOrder(row: Row, index: number, sourceType: SourceType): Order {
-  const amount = resolveOrderAmount(row, sourceType);
-  const settledAmount = Number(row[sourceType === "self_owned" ? "N" : "M"] ?? 0);
-  const receivableAmount = Number(
-    row[sourceType === "self_owned" ? "O" : "Q"] ?? Math.max(amount - settledAmount, 0)
-  );
-  const costAmount = sourceType === "outsourced" ? Number(row["N"] ?? 0) : 0;
-  const profitAmount =
-    sourceType === "outsourced"
-      ? Number(row["P"] ?? amount - costAmount)
-      : amount - costAmount;
-  const clientId = makeClientId(index);
+function toNamedRow(row: RawRow, headerMap: Map<string, string>): NamedRow {
+  const named: NamedRow = {};
+  for (const [name, col] of headerMap.entries()) {
+    named[name] = row[col];
+  }
+  return named;
+}
+
+function normalizeEducationLevel(value: unknown): EducationLevel {
+  const text = asText(value, "其他");
+  return (educationLevels as string[]).includes(text) ? (text as EducationLevel) : "其他";
+}
+
+function joinNotes(...parts: unknown[]) {
+  return parts
+    .map((part) => asText(part))
+    .filter(Boolean)
+    .join(" | ");
+}
+
+function resolveSettledAmount(input: {
+  settledFromSheet?: number;
+  deposit?: number;
+  draft?: number;
+  blind?: number;
+}) {
+  if (input.settledFromSheet !== undefined) return input.settledFromSheet;
+  return (input.deposit ?? 0) + (input.draft ?? 0) + (input.blind ?? 0);
+}
+
+function buildOrderFromSelf(row: NamedRow, index: number): Order {
+  const amount = asNumber(row["总价"]) ?? asNumber(row["收入"]) ?? 0;
+  const depositAmount = asNumber(row["定金支付"]);
+  const draftPaymentAmount = asNumber(row["初稿支付"]);
+  const blindReviewPaymentAmount = asNumber(row["盲审支付"]);
+  const settledAmount = resolveSettledAmount({
+    settledFromSheet: asNumber(row["已结算金额（公式）"]) ?? asNumber(row["已结算金额"]),
+    deposit: depositAmount,
+    draft: draftPaymentAmount,
+    blind: blindReviewPaymentAmount
+  });
+  const receivableAmount =
+    asNumber(row["应收账款"]) ?? Math.max(amount - settledAmount, 0);
+  const school = asText(row["学校名称"], "未知");
+  const schoolResolved = resolveSchoolType({
+    schoolType: row["学校类型"],
+    school
+  });
+  const leadSource = asText(row["单子来源"]);
+  const sourceChannel = leadSource || "历史自接台账";
+  const graduationDate = normalizeDate(row["毕业时间"]) || undefined;
   const now = new Date().toISOString();
+  const clientId = makeClientId(index);
 
   return {
     id: makeOrderId(index),
     clientId,
     clientName: `历史客户${index}`,
-    sourceType,
-    title: String(row[sourceType === "self_owned" ? "F" : "E"] ?? "未知"),
-    schoolType: sourceType === "self_owned" ? String(row["B"] ?? "未知") : "未知",
-    school: String(row[sourceType === "self_owned" ? "E" : "D"] ?? "未知"),
-    educationLevel: String(
-      row[sourceType === "self_owned" ? "C" : "B"] ?? "其他"
-    ) as Order["educationLevel"],
-    major: String(row[sourceType === "self_owned" ? "D" : "C"] ?? "未知"),
-    serviceType:
-      sourceType === "self_owned"
-        ? String(row["G"] ?? "论文服务")
-        : String(row["F"] ?? "论文服务"),
-    packageMode:
-      sourceType === "self_owned"
-        ? String(row["G"] ?? "论文服务")
-        : String(row["F"] ?? "通道费"),
-    writerId: null,
-    ownerName: String(row["O"] ?? (sourceType === "self_owned" ? "自营" : "外包负责人")),
+    sourceType: "self_owned",
+    title: asText(row["论文标题"], "未知"),
+    schoolType: schoolResolved.schoolType,
+    school,
+    educationLevel: normalizeEducationLevel(row["学历"]),
+    major: asText(row["专业"], "未知"),
+    serviceType: asText(row["包干方式"], "论文服务"),
+    packageMode: asText(row["包干方式"], "论文服务"),
+    writerId: FADA_WRITER.id,
+    ownerName: FADA_WRITER.name,
     status: settledAmount >= amount && amount > 0 ? "delivered" : "review",
-    deadline: normalizeDate(row[sourceType === "self_owned" ? "J" : "I"]),
-    writerDeadline: normalizeDate(row["J"]),
-    completedAt: normalizeDate(row["K"]),
-    transactionDate: normalizeDate(row[sourceType === "self_owned" ? "I" : "H"]),
+    deadline: normalizeDate(row["计划完成日期"]),
+    writerDeadline: normalizeDate(row["计划完成日期"]) || undefined,
+    completedAt: normalizeDate(row["实际完成日期"]) || undefined,
+    transactionDate: normalizeDate(row["交易日期"]),
+    amount,
+    depositAmount,
+    draftPaymentAmount,
+    blindReviewPaymentAmount,
+    settledAmount,
+    receivableAmount,
+    costAmount: 0,
+    profitAmount: amount,
+    paymentStatus:
+      settledAmount >= amount && amount > 0 ? "paid" : settledAmount > 0 ? "partial" : "pending",
+    isSettled: asText(row["是否结清"]) === "是",
+    urgency: "medium",
+    sourceChannel,
+    settlementStage: asText(row["结算阶段"]) || undefined,
+    graduationDate,
+    notes: joinNotes(row["备注说明"], row["字段3"]) || undefined,
+    remark: undefined,
+    createdAt: now,
+    updatedAt: now
+  };
+}
+
+function buildOrderFromOutsourced(row: NamedRow, index: number): Order {
+  const amount = asNumber(row["收入"]) ?? 0;
+  const settledAmount = asNumber(row["已结算金额"]) ?? 0;
+  const costAmount = asNumber(row["成本"]) ?? 0;
+  const receivableAmount = asNumber(row["应收账款"]) ?? Math.max(amount - settledAmount, 0);
+  const profitAmount = asNumber(row["利润"]) ?? amount - costAmount;
+  const school = asText(row["学校名称"], "未知");
+  const schoolResolved = resolveSchoolType({ school, schoolType: undefined });
+  const now = new Date().toISOString();
+  const clientId = makeClientId(index);
+
+  return {
+    id: makeOrderId(index),
+    clientId,
+    clientName: `历史客户${index}`,
+    sourceType: "outsourced",
+    title: asText(row["论文标题"], "未知"),
+    schoolType: schoolResolved.schoolType,
+    school,
+    educationLevel: normalizeEducationLevel(row["学历"]),
+    major: asText(row["专业"], "未知"),
+    serviceType: asText(row["包干方式"], "论文服务"),
+    packageMode: asText(row["包干方式"], "通道费"),
+    writerId: null,
+    ownerName: asText(row["负责人"], "外包负责人"),
+    status: settledAmount >= amount && amount > 0 ? "delivered" : "review",
+    deadline: normalizeDate(row["客户要求完成日期"]),
+    writerDeadline: normalizeDate(row["写手完成日期"]) || undefined,
+    completedAt: normalizeDate(row["实际完成日期"]) || undefined,
+    transactionDate: normalizeDate(row["交易日期"]),
     amount,
     settledAmount,
     receivableAmount,
@@ -93,11 +197,11 @@ function buildOrder(row: Row, index: number, sourceType: SourceType): Order {
     profitAmount,
     paymentStatus:
       settledAmount >= amount && amount > 0 ? "paid" : settledAmount > 0 ? "partial" : "pending",
-    isSettled: String(row["L"] ?? "") === "是",
+    isSettled: asText(row["是否已结清"]) === "是" || asText(row["是否结清"]) === "是",
     urgency: "medium",
-    sourceChannel: sourceType === "self_owned" ? "历史自接台账" : "历史转包台账",
-    notes: String(row["P"] ?? row["R"] ?? ""),
-    remark: String(row["Q"] ?? ""),
+    sourceChannel: "历史转包台账",
+    notes: asText(row["备注说明"]) || undefined,
+    remark: undefined,
     createdAt: now,
     updatedAt: now
   };
@@ -107,10 +211,10 @@ function buildClient(order: Order): Client {
   const now = new Date().toISOString();
   return {
     id: order.clientId,
-    name: order.clientName ?? `历史客户`,
+    name: order.clientName ?? "历史客户",
     contactHandle: order.clientId.replace("hist_cli_", "history-"),
     sourceChannel: order.sourceChannel,
-    schoolType: order.schoolType ?? "未知",
+    schoolType: order.schoolType ?? "其他",
     school: order.school ?? "未知",
     educationLevel: order.educationLevel ?? "其他",
     major: order.major ?? "未知",
@@ -119,64 +223,68 @@ function buildClient(order: Order): Client {
     preferredServiceType: order.serviceType,
     preferredDeadline: order.deadline,
     preferredBudget: order.amount,
+    graduationDate: order.graduationDate,
     notes: order.notes,
     lastContactAt: now,
     createdAt: now
   };
 }
 
-const seedWriters: Writer[] = [
-  {
-    id: "wri_001",
-    name: "顾言",
-    specialties: ["教育学", "心理学"],
-    availability: "busy",
-    capacity: 6,
-    activeOrderCount: 0,
-    rating: 4.8,
-    completionRate: 0.96,
-    averageTurnaroundDays: 4.5,
-    priceTier: "premium",
-    ownerName: "自营",
-    settlementMode: "固定稿费",
-    notes: "适合教育学与定量分析类订单。"
-  },
-  {
-    id: "wri_002",
-    name: "秦放",
-    specialties: ["新闻传播学", "市场营销"],
-    availability: "available",
-    capacity: 5,
-    activeOrderCount: 0,
-    rating: 4.6,
-    completionRate: 0.92,
-    averageTurnaroundDays: 5.2,
-    priceTier: "advanced",
-    ownerName: "小樊",
-    settlementMode: "通道费",
-    notes: "适合转包与修改类稿件。"
-  },
-  {
-    id: "wri_003",
-    name: "陆哲",
-    specialties: ["法学", "公共管理"],
-    availability: "available",
-    capacity: 4,
-    activeOrderCount: 0,
-    rating: 4.9,
-    completionRate: 0.98,
-    averageTurnaroundDays: 3.9,
-    priceTier: "premium",
-    ownerName: "自营",
-    settlementMode: "固定稿费",
-    notes: "适合高客单价法学项目。"
+const FADA_WRITER: Writer = {
+  id: "wri_fada",
+  name: "fada",
+  specialties: ["综合"],
+  availability: "available",
+  capacity: 99,
+  activeOrderCount: 0,
+  rating: 5,
+  completionRate: 1,
+  averageTurnaroundDays: 5,
+  priceTier: "premium",
+  ownerName: "fada",
+  settlementMode: "自营",
+  notes: "自接写手。"
+};
+
+const seedWriters: Writer[] = [FADA_WRITER];
+
+function extractSheetRows(workbook: Record<string, RawRow[]>, sheetName: string) {
+  const rows = workbook[sheetName] ?? [];
+  if (rows.length === 0) return [] as NamedRow[];
+
+  const headerMap = buildHeaderMap(rows[0]);
+  const titleCol = headerMap.get("论文标题");
+  if (!titleCol) {
+    throw new Error(`Sheet "${sheetName}" missing required header 论文标题`);
   }
-];
+
+  return rows
+    .slice(1)
+    .filter((row) => asText(row[titleCol]))
+    .map((row) => toNamedRow(row, headerMap));
+}
+
+function collectUnresolvedSchools(rows: NamedRow[]) {
+  return [
+    ...new Set(
+      rows
+        .map((row) => {
+          const school = asText(row["学校名称"]);
+          const resolved = resolveSchoolType({
+            schoolType: row["学校类型"],
+            school
+          });
+          return resolved.unresolved && school && school !== "其他" ? school : "";
+        })
+        .filter(Boolean)
+    )
+  ].sort();
+}
 
 async function main() {
   const workbookPath = process.argv[2]
     ? path.resolve(process.argv[2])
-    : path.join(rawDir, "fada❤whi (2).xlsx");
+    : path.join(rawDir, "fada❤whi.xlsx");
 
   const extractedPath = path.join(dataDir, ".workbook-extracted.json");
 
@@ -185,19 +293,27 @@ async function main() {
     maxBuffer: 20 * 1024 * 1024
   });
 
-  const workbook = JSON.parse(await fs.readFile(extractedPath, "utf-8")) as Record<string, Row[]>;
+  const workbook = JSON.parse(await fs.readFile(extractedPath, "utf-8")) as Record<string, RawRow[]>;
   await fs.unlink(extractedPath).catch(() => undefined);
 
-  const selfRows = (workbook["第一桶金100w（自接）"] ?? []).slice(1).filter((row) => row["F"]);
-  const outsourcedRows = (workbook["第一桶金100w（转包）"] ?? []).slice(1).filter((row) => row["E"]);
+  const selfRows = extractSheetRows(workbook, SELF_SHEET);
+  const outsourcedRows = extractSheetRows(workbook, OUTSOURCED_SHEET);
 
   const importedOrders: Order[] = [
-    ...selfRows.map((row, index) => buildOrder(row, index + 100, "self_owned")),
-    ...outsourcedRows.map((row, index) => buildOrder(row, index + 1000, "outsourced"))
+    ...selfRows.map((row, index) => buildOrderFromSelf(row, index + 100)),
+    ...outsourcedRows.map((row, index) => buildOrderFromOutsourced(row, index + 1000))
   ];
   const importedClients = importedOrders.map((order) => buildClient(order));
+  const unresolvedFromResolver = collectUnresolvedSchools([...selfRows, ...outsourcedRows]);
 
-  // JSON 仅作空库种子备份；运行时主存储是 SQLite
+  const inferredSchoolTypeCount = [...selfRows, ...outsourcedRows].filter((row) => {
+    const resolved = resolveSchoolType({
+      schoolType: row["学校类型"],
+      school: row["学校名称"]
+    });
+    return resolved.inferred;
+  }).length;
+
   const runtimeFiles: Record<string, unknown> = {
     "imported-orders.json": importedOrders,
     "imported-clients.json": importedClients,
@@ -218,8 +334,18 @@ async function main() {
 
   console.log(`Source: ${workbookPath}`);
   console.log(`Imported ${importedOrders.length} orders and ${importedClients.length} clients.`);
+  console.log(`  self_owned: ${selfRows.length}, outsourced: ${outsourcedRows.length}`);
+  console.log(`  schoolType inferred: ${inferredSchoolTypeCount}`);
   console.log(`Wrote SQLite database to ${path.join(dataDir, "thesis.db")}`);
   console.log(`Also refreshed JSON seed backups under ${dataDir}`);
+  if (unresolvedFromResolver.length > 0) {
+    console.log(`Unresolved school types (${unresolvedFromResolver.length}):`);
+    for (const school of unresolvedFromResolver) {
+      console.log(`  - ${school}`);
+    }
+  } else {
+    console.log("All empty school types were resolved via mapping table or placeholders.");
+  }
 }
 
 main().catch((error: unknown) => {

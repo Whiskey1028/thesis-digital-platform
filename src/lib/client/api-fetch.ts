@@ -1,3 +1,5 @@
+import { withBasePath } from "@/lib/client/base-path";
+
 export type ApiErrorPayload = {
   code: string;
   message: string;
@@ -39,7 +41,7 @@ function readErrorPayload(body: unknown): ApiErrorPayload {
 }
 
 export async function apiFetch<T>(url: string, init?: RequestInit): Promise<ApiResult<T>> {
-  const response = await fetch(url, init);
+  const response = await fetch(withBasePath(url), init);
   const body: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {

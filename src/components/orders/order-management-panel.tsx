@@ -8,6 +8,7 @@ import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Pagination } from "@/components/ui/pagination";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ExportExcelButton } from "@/components/ui/export-excel-button";
+import { Button } from "@/components/ui/button";
 import { SearchableSingleSelect, SegmentedSelect } from "@/components/ui/form-controls";
 import {
   FilterBarShell,
@@ -439,20 +440,15 @@ export function OrderManagementPanel({
                   </FieldRow>
                 </div>
                 <div className="mt-6 flex flex-wrap justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => openOrderEditor(viewingOrder)}
-                    className="rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-700"
-                  >
+                  <Button type="button" onClick={() => openOrderEditor(viewingOrder)}>
                     编辑工单
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
                     onClick={() => router.push(`/clients?clientId=${viewingOrder.clientId}`)}
-                    className="rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-700"
                   >
                     跳到客户
-                  </button>
+                  </Button>
                 </div>
               </>
             );

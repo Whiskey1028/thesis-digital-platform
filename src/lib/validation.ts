@@ -29,6 +29,7 @@ export const clientSchema = z.object({
   preferredServiceType: z.string().optional(),
   preferredDeadline: z.string().optional(),
   preferredBudget: z.number().nonnegative().optional(),
+  graduationDate: z.string().optional().or(z.literal("")),
   notes: z.string().optional()
 });
 
@@ -63,6 +64,9 @@ export const createOrderFromClientSchema = z.object({
   completedAt: z.string().optional().or(z.literal("")),
   transactionDate: z.string().min(1),
   amount: z.number().nonnegative(),
+  depositAmount: z.number().nonnegative().optional(),
+  draftPaymentAmount: z.number().nonnegative().optional(),
+  blindReviewPaymentAmount: z.number().nonnegative().optional(),
   settledAmount: z.number().nonnegative(),
   receivableAmount: z.number().nonnegative(),
   costAmount: z.number().nonnegative(),
@@ -71,6 +75,8 @@ export const createOrderFromClientSchema = z.object({
   isSettled: z.boolean(),
   urgency: urgencySchema,
   status: orderStatusSchema,
+  settlementStage: z.string().optional(),
+  graduationDate: z.string().optional().or(z.literal("")),
   notes: z.string().optional(),
   remark: z.string().optional()
 });

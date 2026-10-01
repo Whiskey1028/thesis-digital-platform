@@ -30,10 +30,10 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
     <div className="space-y-6 pb-10">
       <Topbar
         title="论文客户"
-        description="客户档案是整个业务流程的起点。这里先录入客户信息，再通过一键生成工单，把重叠字段自动带入可编辑弹窗。"
+        description="先建客户档案，再从客户上下文生成工单。"
       />
 
-      <section className="grid gap-4 lg:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <KpiCard label="高风险客户" value={kpis.highRiskClients} detail="建议提高沟通频率和节点跟进" />
         <KpiCard label="可直接转工单" value={kpis.convertibleClients} detail="已具备题目和预算等选填信息" />
         <KpiCard label="尚未转化客户" value={kpis.clientsWithoutOrders} detail="适合继续跟进转单机会" />

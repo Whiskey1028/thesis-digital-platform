@@ -34,6 +34,7 @@ export interface Client {
   preferredServiceType?: string;
   preferredDeadline?: string;
   preferredBudget?: number;
+  graduationDate?: string;
   notes?: string;
   lastContactAt: string;
   createdAt: string;
@@ -75,6 +76,9 @@ export interface Order {
   completedAt?: string;
   transactionDate: string;
   amount: number;
+  depositAmount?: number;
+  draftPaymentAmount?: number;
+  blindReviewPaymentAmount?: number;
   settledAmount: number;
   receivableAmount: number;
   costAmount: number;
@@ -83,6 +87,8 @@ export interface Order {
   isSettled: boolean;
   urgency: Urgency;
   sourceChannel: string;
+  settlementStage?: string;
+  graduationDate?: string;
   notes?: string;
   remark?: string;
   createdAt: string;
@@ -107,6 +113,9 @@ export interface OrderDraft {
   completedAt?: string;
   transactionDate: string;
   amount: number;
+  depositAmount?: number;
+  draftPaymentAmount?: number;
+  blindReviewPaymentAmount?: number;
   settledAmount: number;
   receivableAmount: number;
   costAmount: number;
@@ -116,6 +125,8 @@ export interface OrderDraft {
   urgency: Urgency;
   status: OrderStatus;
   sourceChannel: string;
+  settlementStage?: string;
+  graduationDate?: string;
   notes?: string;
   remark?: string;
 }

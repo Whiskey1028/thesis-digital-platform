@@ -43,12 +43,20 @@ a {
 
 input,
 select,
-button {
+button,
+textarea {
   font: inherit;
+}
+
+input,
+select,
+textarea {
+  max-width: 100%;
 }
 
 button {
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 ::selection {

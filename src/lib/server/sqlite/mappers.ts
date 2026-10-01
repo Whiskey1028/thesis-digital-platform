@@ -14,6 +14,7 @@ type ClientRow = {
   preferred_service_type: string | null;
   preferred_deadline: string | null;
   preferred_budget: number | null;
+  graduation_date: string | null;
   notes: string | null;
   last_contact_at: string;
   created_at: string;
@@ -54,6 +55,9 @@ type OrderRow = {
   completed_at: string | null;
   transaction_date: string;
   amount: number;
+  deposit_amount: number | null;
+  draft_payment_amount: number | null;
+  blind_review_payment_amount: number | null;
   settled_amount: number;
   receivable_amount: number;
   cost_amount: number;
@@ -62,6 +66,8 @@ type OrderRow = {
   is_settled: number;
   urgency: string;
   source_channel: string;
+  settlement_stage: string | null;
+  graduation_date: string | null;
   notes: string | null;
   remark: string | null;
   created_at: string;
@@ -83,6 +89,7 @@ export function mapClientRow(row: ClientRow): Client {
     preferredServiceType: row.preferred_service_type ?? undefined,
     preferredDeadline: row.preferred_deadline ?? undefined,
     preferredBudget: row.preferred_budget ?? undefined,
+    graduationDate: row.graduation_date ?? undefined,
     notes: row.notes ?? undefined,
     lastContactAt: row.last_contact_at,
     createdAt: row.created_at
@@ -104,6 +111,7 @@ export function clientToRow(client: Client): ClientRow {
     preferred_service_type: client.preferredServiceType ?? null,
     preferred_deadline: client.preferredDeadline ?? null,
     preferred_budget: client.preferredBudget ?? null,
+    graduation_date: client.graduationDate ?? null,
     notes: client.notes ?? null,
     last_contact_at: client.lastContactAt,
     created_at: client.createdAt
@@ -166,6 +174,9 @@ export function mapOrderRow(row: OrderRow): Order {
     completedAt: row.completed_at ?? undefined,
     transactionDate: row.transaction_date,
     amount: row.amount,
+    depositAmount: row.deposit_amount ?? undefined,
+    draftPaymentAmount: row.draft_payment_amount ?? undefined,
+    blindReviewPaymentAmount: row.blind_review_payment_amount ?? undefined,
     settledAmount: row.settled_amount,
     receivableAmount: row.receivable_amount,
     costAmount: row.cost_amount,
@@ -174,6 +185,8 @@ export function mapOrderRow(row: OrderRow): Order {
     isSettled: row.is_settled === 1,
     urgency: row.urgency as Order["urgency"],
     sourceChannel: row.source_channel,
+    settlementStage: row.settlement_stage ?? undefined,
+    graduationDate: row.graduation_date ?? undefined,
     notes: row.notes ?? undefined,
     remark: row.remark ?? undefined,
     createdAt: row.created_at,
@@ -202,6 +215,9 @@ export function orderToRow(order: Order) {
     completed_at: order.completedAt ?? null,
     transaction_date: order.transactionDate,
     amount: order.amount,
+    deposit_amount: order.depositAmount ?? null,
+    draft_payment_amount: order.draftPaymentAmount ?? null,
+    blind_review_payment_amount: order.blindReviewPaymentAmount ?? null,
     settled_amount: order.settledAmount,
     receivable_amount: order.receivableAmount,
     cost_amount: order.costAmount,
@@ -210,6 +226,8 @@ export function orderToRow(order: Order) {
     is_settled: order.isSettled ? 1 : 0,
     urgency: order.urgency,
     source_channel: order.sourceChannel,
+    settlement_stage: order.settlementStage ?? null,
+    graduation_date: order.graduationDate ?? null,
     notes: order.notes ?? null,
     remark: order.remark ?? null,
     created_at: order.createdAt,

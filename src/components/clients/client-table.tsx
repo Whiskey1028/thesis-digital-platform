@@ -1,8 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { ClientOrderDialog } from "@/components/clients/client-order-dialog";
 import { StatusPill } from "@/components/ui/status-pill";
+import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
+import { StatTile } from "@/components/ui/stat-tile";
 import { createOrderDraftFromClient } from "@/lib/server/order-drafts";
 import type { ClientListItem } from "@/lib/api/list-queries";
 import type { Writer } from "@/lib/types";
@@ -42,7 +44,9 @@ export function ClientTable({
             <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
               <div className="flex-1">
                 <div className="flex flex-wrap items-center gap-3">
-                  <h3 className="text-2xl font-semibold tracking-tight text-slate-950">{client.name}</h3>
+                  <h3 className="text-2xl font-semibold tracking-tight text-slate-950">
+                    {client.name}
+                  </h3>
                   <StatusPill label={client.riskLevel} tone={riskTone(client.riskLevel)} />
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">
                     {client.sourceChannel}
@@ -55,53 +59,33 @@ export function ClientTable({
                 <p className="mt-3 text-sm leading-6 text-slate-600">{client.notes}</p>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-4 xl:w-[720px]">
-                <div className="rounded-[22px] bg-slate-50 p-4">
-                  <p className="text-xs text-slate-500">累计工单</p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-950">{client.orderCount}</p>
-                </div>
-                <div className="rounded-[22px] bg-slate-50 p-4">
-                  <p className="text-xs text-slate-500">预设预算</p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-950">
-                    ¥{(client.preferredBudget ?? 0).toLocaleString()}
-                  </p>
-                </div>
-                <div className="rounded-[22px] bg-slate-50 p-4">
-                  <p className="text-xs text-slate-500">预设服务</p>
-                  <p className="mt-2 text-sm font-medium text-slate-900">
-                    {client.preferredServiceType ?? "未设置"}
-                  </p>
-                </div>
-                <div className="rounded-[22px] bg-slate-50 p-4">
-                  <p className="text-xs text-slate-500">最近工单</p>
-                  <p className="mt-2 text-sm font-medium text-slate-900">
-                    {client.latestOrderTitle ?? "尚未生成工单"}
-                  </p>
-                </div>
+              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 xl:w-[720px]">
+                <StatTile label="累计工单" value={client.orderCount} />
+                <StatTile
+                  label="预设预算"
+                  value={`¥${(client.preferredBudget ?? 0).toLocaleString()}`}
+                />
+                <StatTile
+                  label="预设服务"
+                  value={client.preferredServiceType ?? "未设置"}
+                  valueClassName="mt-2 text-sm font-medium text-slate-900"
+                />
+                <StatTile
+                  label="最近工单"
+                  value={client.latestOrderTitle ?? "尚未生成工单"}
+                  valueClassName="mt-2 text-sm font-medium text-slate-900"
+                />
               </div>
             </div>
 
             <div className="mt-5 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={() => onViewClient?.(client)}
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700"
-              >
+              <Button type="button" onClick={() => onViewClient?.(client)}>
                 查看详情
-              </button>
-              <button
-                type="button"
-                onClick={() => onEditClient?.(client)}
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700"
-              >
+              </Button>
+              <Button type="button" onClick={() => onEditClient?.(client)}>
                 直接编辑
-              </button>
-              <Link
-                href={`/orders?clientId=${client.id}`}
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700"
-              >
-                查看关联工单
-              </Link>
+              </Button>
+              <ButtonLink href={`/orders?clientId=${client.id}`}>查看关联工单</ButtonLink>
             </div>
 
             <div className="mt-5 flex flex-col gap-4 rounded-[24px] bg-slate-950 px-5 py-4 text-white lg:flex-row lg:items-center lg:justify-between">

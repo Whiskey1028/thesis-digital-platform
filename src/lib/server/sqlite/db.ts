@@ -67,6 +67,7 @@ function initSchema(db: Database.Database) {
       preferred_service_type TEXT,
       preferred_deadline TEXT,
       preferred_budget REAL,
+      graduation_date TEXT,
       notes TEXT,
       last_contact_at TEXT NOT NULL,
       created_at TEXT NOT NULL
@@ -107,6 +108,9 @@ function initSchema(db: Database.Database) {
       completed_at TEXT,
       transaction_date TEXT NOT NULL,
       amount REAL NOT NULL,
+      deposit_amount REAL,
+      draft_payment_amount REAL,
+      blind_review_payment_amount REAL,
       settled_amount REAL NOT NULL,
       receivable_amount REAL NOT NULL,
       cost_amount REAL NOT NULL,
@@ -115,6 +119,8 @@ function initSchema(db: Database.Database) {
       is_settled INTEGER NOT NULL,
       urgency TEXT NOT NULL,
       source_channel TEXT NOT NULL,
+      settlement_stage TEXT,
+      graduation_date TEXT,
       notes TEXT,
       remark TEXT,
       created_at TEXT NOT NULL,
@@ -127,6 +133,26 @@ function initSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_clients_risk_level ON clients(risk_level);
     CREATE INDEX IF NOT EXISTS idx_clients_created_at ON clients(created_at);
   `);
+
+  ensureColumn(db, "clients", "graduation_date", "TEXT");
+  ensureColumn(db, "orders", "deposit_amount", "REAL");
+  ensureColumn(db, "orders", "draft_payment_amount", "REAL");
+  ensureColumn(db, "orders", "blind_review_payment_amount", "REAL");
+  ensureColumn(db, "orders", "settlement_stage", "TEXT");
+  ensureColumn(db, "orders", "graduation_date", "TEXT");
+}
+
+function ensureColumn(
+  db: Database.Database,
+  table: string,
+  column: string,
+  definition: string
+) {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  if (columns.some((item) => item.name === column)) {
+    return;
+  }
+  db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
 }
 
 async function readJsonSeed<T>(filename: string, fallback: T): Promise<T> {
@@ -159,11 +185,11 @@ function seedDatabase(db: Database.Database, clients: Client[], writers: Writer[
     INSERT INTO clients (
       id, name, contact_handle, source_channel, school_type, school, education_level, major,
       risk_level, preferred_title, preferred_service_type, preferred_deadline, preferred_budget,
-      notes, last_contact_at, created_at
+      graduation_date, notes, last_contact_at, created_at
     ) VALUES (
       @id, @name, @contact_handle, @source_channel, @school_type, @school, @education_level, @major,
       @risk_level, @preferred_title, @preferred_service_type, @preferred_deadline, @preferred_budget,
-      @notes, @last_contact_at, @created_at
+      @graduation_date, @notes, @last_contact_at, @created_at
     )
   `);
 
@@ -181,15 +207,17 @@ function seedDatabase(db: Database.Database, clients: Client[], writers: Writer[
     INSERT INTO orders (
       id, client_id, client_name, source_type, title, school_type, school, education_level, major,
       service_type, package_mode, writer_id, owner_name, status, deadline, writer_deadline,
-      completed_at, transaction_date, amount, settled_amount, receivable_amount, cost_amount,
-      profit_amount, payment_status, is_settled, urgency, source_channel, notes, remark,
-      created_at, updated_at
+      completed_at, transaction_date, amount, deposit_amount, draft_payment_amount,
+      blind_review_payment_amount, settled_amount, receivable_amount, cost_amount,
+      profit_amount, payment_status, is_settled, urgency, source_channel, settlement_stage,
+      graduation_date, notes, remark, created_at, updated_at
     ) VALUES (
       @id, @client_id, @client_name, @source_type, @title, @school_type, @school, @education_level, @major,
       @service_type, @package_mode, @writer_id, @owner_name, @status, @deadline, @writer_deadline,
-      @completed_at, @transaction_date, @amount, @settled_amount, @receivable_amount, @cost_amount,
-      @profit_amount, @payment_status, @is_settled, @urgency, @source_channel, @notes, @remark,
-      @created_at, @updated_at
+      @completed_at, @transaction_date, @amount, @deposit_amount, @draft_payment_amount,
+      @blind_review_payment_amount, @settled_amount, @receivable_amount, @cost_amount,
+      @profit_amount, @payment_status, @is_settled, @urgency, @source_channel, @settlement_stage,
+      @graduation_date, @notes, @remark, @created_at, @updated_at
     )
   `);
 

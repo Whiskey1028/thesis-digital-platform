@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { withBasePath } from "@/lib/client/base-path";
 
 export function ExportExcelButton({
   exportUrl,
@@ -15,7 +16,7 @@ export function ExportExcelButton({
     setIsExporting(true);
 
     try {
-      const response = await fetch(exportUrl);
+      const response = await fetch(withBasePath(exportUrl));
       if (!response.ok) {
         window.alert("导出失败，请稍后重试。");
         return;

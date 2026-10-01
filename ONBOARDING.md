@@ -66,11 +66,13 @@ npm install
 npm run dev
 ```
 
-- 默认 [http://localhost:3000](http://localhost:3000)
-- 若提示 **Port 3000 is in use**，看终端里的实际端口（常见 `3001`/`3003`），用那个地址打开
+- 默认 [http://localhost:3000/thesis](http://localhost:3000/thesis)（应用 `basePath` 为 `/thesis`）
+- 若提示 **Port 3000 is in use**，看终端里的实际端口（常见 `3001`/`3003`），用 `http://localhost:<端口>/thesis` 打开
 - 首次启动会自动创建 `data/thesis.db`（空库时从 `data/*.json` 种子导入）
 
-验证：打开 `/overview`、`/clients`、`/orders`、`/writers`，侧栏应显示「本地 SQLite」。
+验证：打开 `/thesis/overview`、`/thesis/clients`、`/thesis/orders`、`/thesis/writers`，侧栏应显示「本地 SQLite」。
+
+可选：复制 `.env.example` 为 `.env.local`，填写 `SITE_ACCESS_PASSWORD` 后重启；未设置时不启用密码门。
 
 停服务：在跑 `npm run dev` 的终端按 `Ctrl+C`。
 

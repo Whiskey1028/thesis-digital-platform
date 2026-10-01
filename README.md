@@ -96,7 +96,9 @@ npm install
 npm run dev
 ```
 
-浏览器访问 [http://localhost:3000](http://localhost:3000)，默认进入总览。
+浏览器访问 [http://localhost:3000/thesis](http://localhost:3000/thesis)（`basePath` 为 `/thesis`，与共部署子路径一致），默认进入总览。
+
+可选站点密码：在 `.env.local` 设置 `SITE_ACCESS_PASSWORD` 后重启，访问会先进入 `/thesis/login`；不设则门禁关闭。
 
 生产环境打包与启动：
 

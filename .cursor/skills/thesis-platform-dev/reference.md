@@ -46,7 +46,7 @@
 
 ```bash
 npm install
-npm run dev              # http://localhost:3000
+npm run dev              # http://localhost:3000/thesis
 npm run import:history   # 历史 Excel 导入 → thesis.db（并刷新 JSON 种子）
 npm run repair:history   # 按台账修补金额等字段 → thesis.db
 npm run cli -- clients list --page 1 --page-size 10

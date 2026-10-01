@@ -73,7 +73,11 @@ export function buildOrdersWorkbook(
       计划完成日期: order.deadline,
       写手截止日期: order.writerDeadline ?? "",
       实际完成日期: order.completedAt ?? "",
+      毕业时间: order.graduationDate ?? client?.graduationDate ?? "",
       总价: order.amount,
+      定金支付: order.depositAmount ?? "",
+      初稿支付: order.draftPaymentAmount ?? "",
+      盲审支付: order.blindReviewPaymentAmount ?? "",
       已结算: order.settledAmount,
       应收: order.receivableAmount,
       成本: order.costAmount,
@@ -82,6 +86,7 @@ export function buildOrdersWorkbook(
       是否结清: boolLabel(order.isSettled),
       紧急度: order.urgency,
       来源渠道: order.sourceChannel,
+      结算阶段: order.settlementStage ?? "",
       备注: order.notes ?? order.remark ?? "",
       创建时间: order.createdAt,
       更新时间: order.updatedAt
@@ -109,6 +114,7 @@ export function buildClientsWorkbook(clients: Client[]) {
     预设服务类型: client.preferredServiceType ?? "",
     预设截止日期: client.preferredDeadline ?? "",
     预设预算: client.preferredBudget ?? "",
+    毕业时间: client.graduationDate ?? "",
     备注: client.notes ?? "",
     最后联系: client.lastContactAt,
     创建时间: client.createdAt

@@ -8,6 +8,7 @@ import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { ExportExcelButton } from "@/components/ui/export-excel-button";
 import { Pagination } from "@/components/ui/pagination";
+import { Button } from "@/components/ui/button";
 import {
   FilterBarShell,
   FilterChipRow,
@@ -242,23 +243,22 @@ export function WriterManagementPanel({ list }: { list: PaginatedResult<Writer> 
             </FieldRow>
           </div>
           <div className="mt-6 flex flex-wrap justify-end gap-3">
-            <button
+            <Button
               type="button"
               onClick={() => {
                 setEditingWriter(viewingWriter);
                 setViewingWriter(null);
               }}
-              className="rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-700"
             >
               编辑写手
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="primary"
               onClick={() => router.push(`/orders?writerId=${viewingWriter.id}`)}
-              className="rounded-full bg-slate-950 px-4 py-2 text-sm text-white"
             >
               查看关联工单
-            </button>
+            </Button>
           </div>
         </ModalShell>
       ) : null}

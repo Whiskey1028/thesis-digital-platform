@@ -23,11 +23,11 @@ export function OrderBoard({ columns: boardColumns }: { columns: OrderBoardColum
   const byStatus = new Map(boardColumns.map((column) => [column.status, column]));
 
   return (
-    <div className="grid gap-4 xl:grid-cols-3 2xl:grid-cols-6">
+    <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2 xl:mx-0 xl:grid xl:grid-cols-3 xl:overflow-visible xl:px-0 xl:pb-0 2xl:grid-cols-6">
       {columns.map((column) => {
         const scoped = byStatus.get(column) ?? { status: column, count: 0, items: [] };
         return (
-          <GlassCard key={column} className="p-4">
+          <GlassCard key={column} className="w-[min(280px,85vw)] shrink-0 p-4 xl:w-auto xl:shrink">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium capitalize text-slate-800">{column}</p>
               <StatusPill label={`${scoped.count} 项`} tone={toneMap[column]} />

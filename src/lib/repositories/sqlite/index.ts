@@ -36,11 +36,11 @@ export const sqliteClientRepository: ClientRepository = {
       INSERT INTO clients (
         id, name, contact_handle, source_channel, school_type, school, education_level, major,
         risk_level, preferred_title, preferred_service_type, preferred_deadline, preferred_budget,
-        notes, last_contact_at, created_at
+        graduation_date, notes, last_contact_at, created_at
       ) VALUES (
         @id, @name, @contact_handle, @source_channel, @school_type, @school, @education_level, @major,
         @risk_level, @preferred_title, @preferred_service_type, @preferred_deadline, @preferred_budget,
-        @notes, @last_contact_at, @created_at
+        @graduation_date, @notes, @last_contact_at, @created_at
       )
     `).run(clientToRow(input));
     return input;
@@ -67,6 +67,7 @@ export const sqliteClientRepository: ClientRepository = {
         preferred_service_type = @preferred_service_type,
         preferred_deadline = @preferred_deadline,
         preferred_budget = @preferred_budget,
+        graduation_date = @graduation_date,
         notes = @notes,
         last_contact_at = @last_contact_at,
         created_at = @created_at
@@ -112,15 +113,17 @@ export const sqliteOrderRepository: OrderRepository = {
       INSERT INTO orders (
         id, client_id, client_name, source_type, title, school_type, school, education_level, major,
         service_type, package_mode, writer_id, owner_name, status, deadline, writer_deadline,
-        completed_at, transaction_date, amount, settled_amount, receivable_amount, cost_amount,
-        profit_amount, payment_status, is_settled, urgency, source_channel, notes, remark,
-        created_at, updated_at
+        completed_at, transaction_date, amount, deposit_amount, draft_payment_amount,
+        blind_review_payment_amount, settled_amount, receivable_amount, cost_amount,
+        profit_amount, payment_status, is_settled, urgency, source_channel, settlement_stage,
+        graduation_date, notes, remark, created_at, updated_at
       ) VALUES (
         @id, @client_id, @client_name, @source_type, @title, @school_type, @school, @education_level, @major,
         @service_type, @package_mode, @writer_id, @owner_name, @status, @deadline, @writer_deadline,
-        @completed_at, @transaction_date, @amount, @settled_amount, @receivable_amount, @cost_amount,
-        @profit_amount, @payment_status, @is_settled, @urgency, @source_channel, @notes, @remark,
-        @created_at, @updated_at
+        @completed_at, @transaction_date, @amount, @deposit_amount, @draft_payment_amount,
+        @blind_review_payment_amount, @settled_amount, @receivable_amount, @cost_amount,
+        @profit_amount, @payment_status, @is_settled, @urgency, @source_channel, @settlement_stage,
+        @graduation_date, @notes, @remark, @created_at, @updated_at
       )
     `).run(orderToRow(input));
     return input;
@@ -158,6 +161,9 @@ export const sqliteOrderRepository: OrderRepository = {
         completed_at = @completed_at,
         transaction_date = @transaction_date,
         amount = @amount,
+        deposit_amount = @deposit_amount,
+        draft_payment_amount = @draft_payment_amount,
+        blind_review_payment_amount = @blind_review_payment_amount,
         settled_amount = @settled_amount,
         receivable_amount = @receivable_amount,
         cost_amount = @cost_amount,
@@ -166,6 +172,8 @@ export const sqliteOrderRepository: OrderRepository = {
         is_settled = @is_settled,
         urgency = @urgency,
         source_channel = @source_channel,
+        settlement_stage = @settlement_stage,
+        graduation_date = @graduation_date,
         notes = @notes,
         remark = @remark,
         created_at = @created_at,

@@ -26,10 +26,10 @@ export default async function WritersPage({ searchParams }: WritersPageProps) {
     <div className="space-y-6 pb-10">
       <Topbar
         title="论文写手"
-        description="写手池单独管理，不依附具体客户。这里既看人，也看当前可承载能力，方便后续做分单策略。"
+        description="独立写手池：能力、负载与结算条款。"
       />
 
-      <section className="grid gap-4 lg:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <KpiCard label="总容量" value={kpis.totalCapacity} detail="可容纳的并行工单上限" />
         <KpiCard label="当前负载" value={kpis.activeLoad} detail="当前已占用的工单容量" />
         <KpiCard label="平均评分" value={averageRating} detail="基于当前写手池统计" />

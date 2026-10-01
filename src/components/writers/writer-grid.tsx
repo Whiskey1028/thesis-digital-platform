@@ -1,8 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { GlassCard } from "@/components/ui/glass-card";
 import { StatusPill } from "@/components/ui/status-pill";
+import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
+import { StatTile } from "@/components/ui/stat-tile";
 import type { Writer } from "@/lib/types";
 
 function availabilityTone(availability: Writer["availability"]) {
@@ -41,54 +43,37 @@ export function WriterGrid({
             负责人 {writer.ownerName} / 结算方式 {writer.settlementMode}
           </div>
 
-          <div className="mt-6 grid gap-3 md:grid-cols-2">
-            <div className="rounded-[22px] bg-white/85 p-4">
-              <p className="text-xs text-slate-500">当前单量</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-900">{writer.activeOrderCount}</p>
-            </div>
-            <div className="rounded-[22px] bg-white/85 p-4">
-              <p className="text-xs text-slate-500">容量上限</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-900">{writer.capacity}</p>
-            </div>
-            <div className="rounded-[22px] bg-white/85 p-4">
-              <p className="text-xs text-slate-500">评分</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-900">{writer.rating}</p>
-            </div>
-            <div className="rounded-[22px] bg-white/85 p-4">
-              <p className="text-xs text-slate-500">完成率</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-900">
-                {Math.round(writer.completionRate * 100)}%
-              </p>
-            </div>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <StatTile
+              label="当前单量"
+              value={writer.activeOrderCount}
+              className="bg-white/85"
+            />
+            <StatTile label="容量上限" value={writer.capacity} className="bg-white/85" />
+            <StatTile label="评分" value={writer.rating} className="bg-white/85" />
+            <StatTile
+              label="完成率"
+              value={`${Math.round(writer.completionRate * 100)}%`}
+              className="bg-white/85"
+            />
           </div>
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => onViewWriter?.(writer)}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700"
-            >
+            <Button type="button" onClick={() => onViewWriter?.(writer)}>
               查看详情
-            </button>
-            <button
-              type="button"
-              onClick={() => onEditWriter?.(writer)}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700"
-            >
+            </Button>
+            <Button type="button" onClick={() => onEditWriter?.(writer)}>
               直接编辑
-            </button>
-            <Link
-              href={`/orders?writerId=${writer.id}`}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700"
-            >
-              查看关联工单
-            </Link>
+            </Button>
+            <ButtonLink href={`/orders?writerId=${writer.id}`}>查看关联工单</ButtonLink>
           </div>
 
           <div className="mt-5 text-sm text-slate-500">
             平均交付周期 {writer.averageTurnaroundDays} 天，报价层级 {writer.priceTier}。
           </div>
-          {writer.notes ? <div className="mt-3 text-sm leading-6 text-slate-500">{writer.notes}</div> : null}
+          {writer.notes ? (
+            <div className="mt-3 text-sm leading-6 text-slate-500">{writer.notes}</div>
+          ) : null}
         </GlassCard>
       ))}
     </div>

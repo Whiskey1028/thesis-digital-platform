@@ -15,7 +15,7 @@ export function createOrderDraftFromClient(client: Client): OrderDraft {
     serviceType: client.preferredServiceType ?? "论文全文",
     packageMode: client.preferredServiceType ?? "论文全文",
     writerId: null,
-    ownerName: "自营",
+    ownerName: "fada",
     deadline: client.preferredDeadline ?? "",
     writerDeadline: client.preferredDeadline ?? "",
     completedAt: "",
@@ -30,6 +30,7 @@ export function createOrderDraftFromClient(client: Client): OrderDraft {
     urgency: client.riskLevel === "high" ? "high" : "medium",
     status: "lead",
     sourceChannel: client.sourceChannel,
+    graduationDate: client.graduationDate,
     notes: client.notes,
     remark: ""
   };
