@@ -100,6 +100,8 @@ npm run dev
 
 可选站点密码：在 `.env.local` 设置 `SITE_ACCESS_PASSWORD` 后重启，访问会先进入 `/thesis/login`；不设则门禁关闭。
 
+同机共部署与远端推送：见 [`docs/DEPLOY-PREP.md`](./docs/DEPLOY-PREP.md)（索引）、[`docs/SERVER-INVENTORY.md`](./docs/SERVER-INVENTORY.md)、[`docs/DEPLOY-PLAYBOOK.md`](./docs/DEPLOY-PLAYBOOK.md)。
+
 生产环境打包与启动：
 
 ```bash

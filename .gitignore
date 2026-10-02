@@ -10,6 +10,8 @@ npm-debug.log*
 docs/
 !docs/ARCHITECTURE.md
 !docs/DEPLOY-PREP.md
+!docs/SERVER-INVENTORY.md
+!docs/DEPLOY-PLAYBOOK.md
 data/
 data/*.db
 data/*.db-*
